@@ -9,7 +9,7 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   session_does_not_belong_to_user: "Сессия не принадлежит текущему пользователю.",
   session_not_active: "Сессия неактивна.",
   invalid_answer_payload: "Ответ отправлен в неверном формате.",
-  question_already_answered: "Этот вопрос уже был отвечен.",
+  question_already_answered: "На этот вопрос уже был дан ответ.",
 };
 
 export function getErrorMessage(error: unknown, fallback: string): string {
