@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-cd /home/runner/work/frontend/frontend/t-events-frontend
+cd t-events-frontend
 cp .env.example .env.local
 npm ci
 ```
