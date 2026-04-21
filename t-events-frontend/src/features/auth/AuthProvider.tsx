@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useMemo, useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { createContext, useContext, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserDTO } from "@/lib/api/types";
 import { tokenStore } from "@/lib/auth/tokenStore";
 import { refreshSession } from "./refresh";
@@ -17,7 +17,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [userOverride, setUserOverride] = useState<UserDTO | null | undefined>(undefined);
+    const queryClient = useQueryClient();
 
     const bootstrapQuery = useQuery({
         queryKey: ["auth", "bootstrap-session"],
@@ -41,11 +41,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         tokenStore.set(null);
     }, [bootstrapQuery.isError]);
 
-    const user = userOverride ?? bootstrapQuery.data ?? null;
-    const isBootstrapping = userOverride === undefined && bootstrapQuery.isPending;
+    const user = bootstrapQuery.data ?? null;
+    const isBootstrapping = bootstrapQuery.isPending;
 
     const setUser = (nextUser: UserDTO | null) => {
-        setUserOverride(nextUser);
+        queryClient.setQueryData(["auth", "bootstrap-session"], nextUser);
     };
 
     const logout = async () => {
@@ -55,12 +55,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // ignore logout endpoint errors on client side
         }
         tokenStore.set(null);
-        setUserOverride(null);
+        queryClient.setQueryData(["auth", "bootstrap-session"], null);
+        queryClient.clear(); // Optionally clear all caches on logout
     };
 
     const value = useMemo(
         () => ({ user, setUser, logout, isBootstrapping }),
-        [user, isBootstrapping]
+        [user, isBootstrapping, setUser, logout]
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

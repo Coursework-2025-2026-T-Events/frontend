@@ -3,7 +3,17 @@ import { tokenStore } from "@/lib/auth/tokenStore";
 const API_BASE = "/api/v1";
 const REFRESH_PATH = "/auth/refresh";
 
-let refreshPromise: Promise<string | null> | null = null;
+export class ApiError extends Error {
+  public status: number;
+  public code: string;
+
+  constructor(message: string, status: number, code: string = "http_error") {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
 
 function getCsrfTokenFromCookie(): string | null {
   if (typeof document === "undefined") return null;
@@ -13,7 +23,11 @@ function getCsrfTokenFromCookie(): string | null {
 
 function shouldAttachJsonContentType(body: BodyInit | null | undefined): boolean {
   if (body === undefined || body === null) return false;
-  return !(body instanceof FormData);
+  // Exclude types that the browser sets Content-Type for automatically
+  if (body instanceof FormData || body instanceof Blob || body instanceof ArrayBuffer || body instanceof URLSearchParams) {
+    return false;
+  }
+  return true;
 }
 
 function buildHeaders(options: RequestInit, token: string | null): Headers {
@@ -38,8 +52,29 @@ function buildHeaders(options: RequestInit, token: string | null): Headers {
   return headers;
 }
 
+async function executeRefresh(): Promise<string | null> {
+  try {
+    const rfRes = await fetch(`${API_BASE}${REFRESH_PATH}`, {
+      method: "POST",
+      headers: buildHeaders({ method: "POST" }, null),
+      credentials: "include",
+    });
+    if (!rfRes.ok) return null;
+
+    const rfData = await rfRes.json();
+    const newToken = rfData?.data?.access_token;
+    if (typeof newToken === "string" && newToken.length > 0) {
+      tokenStore.set(newToken);
+      return newToken;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = tokenStore.get();
+  let token = tokenStore.get();
 
   let res = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -48,37 +83,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (res.status === 401 && path !== REFRESH_PATH) {
-    if (!refreshPromise) {
-      refreshPromise = (async () => {
-        try {
-          const rfRes = await fetch(`${API_BASE}${REFRESH_PATH}`, {
-            method: "POST",
-            headers: buildHeaders({ method: "POST" }, null),
-            credentials: "include",
-          });
-          if (!rfRes.ok) return null;
+    // Note: For advanced concurrency, implement a React Context-based queue or use TanStack Query's retry mechanisms instead of a global promise
+    token = await executeRefresh();
 
-          const rfData = await rfRes.json();
-          const newToken = rfData?.data?.access_token;
-          if (typeof newToken === "string" && newToken.length > 0) {
-            tokenStore.set(newToken);
-            return newToken;
-          }
-          return null;
-        } catch {
-          return null;
-        } finally {
-          refreshPromise = null;
-        }
-      })();
-    }
-
-    const newToken = await refreshPromise;
-
-    if (newToken) {
+    if (token) {
       res = await fetch(`${API_BASE}${path}`, {
         ...options,
-        headers: buildHeaders(options, newToken),
+        headers: buildHeaders(options, token),
         credentials: "include",
       });
     } else {
@@ -86,7 +97,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     }
   }
 
-  let data: unknown;
+  let data: any;
   const contentType = res.headers.get("content-type");
   if (contentType && contentType.includes("application/json")) {
     try {
@@ -99,11 +110,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    throw (data as { error?: unknown })?.error ?? {
-      code: "http_error",
-      message: typeof data === "string" ? data : "Unknown error",
-      status: res.status,
-    };
+    const errorMsg = data?.error?.message || (typeof data === "string" ? data : "Unknown API Error");
+    const errorCode = data?.error?.code || "http_error";
+    throw new ApiError(errorMsg, res.status, errorCode);
   }
   return data as T;
 }

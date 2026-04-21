@@ -1,5 +1,4 @@
 const TOKEN_KEY = "t-events-access-token";
-let accessToken: string | null = null;
 
 function readStoredToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -24,13 +23,10 @@ function persistToken(token: string | null) {
 }
 
 export const tokenStore = {
-  get: () => {
-    if (accessToken !== null) return accessToken;
-    accessToken = readStoredToken();
-    return accessToken;
+  get: (): string | null => {
+    return readStoredToken();
   },
   set: (token: string | null) => {
-    accessToken = token;
     persistToken(token);
   },
 };
