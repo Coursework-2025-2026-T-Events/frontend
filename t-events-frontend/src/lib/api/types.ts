@@ -2,8 +2,10 @@ export type UserDTO = {
   user_id: number;
   email: string;
   full_name: string;
-  role: string;
+  role: UserRole;
 };
+
+export type UserRole = "participant" | "stander" | "admin";
 
 export type EventDTO = {
   event_id: number;

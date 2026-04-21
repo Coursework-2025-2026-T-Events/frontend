@@ -10,15 +10,14 @@ import Button from "@/components/ui/Button";
 import RequireAuth from "@/features/auth/RequireAuth";
 import { useParticipationStore } from "@/features/participation/store";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/features/auth/AuthProvider";
+import { useIsAuthorized } from "@/features/auth/useIsAuthorized";
 
 export default function DirectionDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const eventId = Number(params.id);
   const directionId = Number(params.directionId);
-  const { user, isBootstrapping } = useAuth();
-  const isAuthorized = !isBootstrapping && !!user;
+  const isAuthorized = useIsAuthorized();
 
   const { directionId: selectedDirectionId, selectDirection } = useParticipationStore();
 

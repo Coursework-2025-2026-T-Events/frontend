@@ -3,10 +3,12 @@
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
+import type { UserRole } from "@/lib/api/types";
+import { isRoleAllowed } from "./authorization";
 
 type RequireAuthProps = {
     children: React.ReactNode;
-    allowedRoles?: string[];
+    allowedRoles?: UserRole[];
 };
 
 export default function RequireAuth({ children, allowedRoles }: RequireAuthProps) {
@@ -16,8 +18,7 @@ export default function RequireAuth({ children, allowedRoles }: RequireAuthProps
     const isAuthenticated = !!user;
     const isRoleAuthorized = useMemo(() => {
         if (!user) return false;
-        if (!allowedRoles) return true;
-        return allowedRoles.includes(user.role);
+        return isRoleAllowed(user.role, allowedRoles);
     }, [allowedRoles, user]);
 
     useEffect(() => {

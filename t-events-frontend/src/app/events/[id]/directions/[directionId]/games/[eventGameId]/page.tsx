@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Container from "@/components/ui/Container";
@@ -12,7 +12,7 @@ import RequireAuth from "@/features/auth/RequireAuth";
 import { eventsApi, type SubmitAnswerPayload } from "@/features/events/api";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import type { CurrentQuestionDTO, SessionStateDTO, StartOrResumeSessionDTO } from "@/lib/api/types";
-import { useAuth } from "@/features/auth/AuthProvider";
+import { useIsAuthorized } from "@/features/auth/useIsAuthorized";
 
 type RuntimeState = {
   session_id: number;
@@ -39,26 +39,41 @@ export default function GameSessionPage() {
   const eventId = Number(params.id);
   const directionId = Number(params.directionId);
   const eventGameId = Number(params.eventGameId);
-  const { user, isBootstrapping } = useAuth();
-  const isAuthorized = !isBootstrapping && !!user;
+  const isAuthorized = useIsAuthorized();
 
   const sessionIdParam = Number(searchParams.get("sessionId"));
+  const hasSessionIdParam = Number.isFinite(sessionIdParam) && sessionIdParam > 0;
 
   const [answerText, setAnswerText] = useState("");
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
+  const hasStartedRef = useRef(false);
 
-  const bootstrapQuery = useQuery({
-    queryKey: ["game-session-bootstrap", eventId, directionId, eventGameId],
-    queryFn: () => eventsApi.startOrResumeSession(eventId, directionId, eventGameId),
-    enabled: Number.isFinite(eventId) && Number.isFinite(directionId) && Number.isFinite(eventGameId) && isAuthorized,
+  const startSessionMutation = useMutation({
+    mutationFn: () => eventsApi.startOrResumeSession(eventId, directionId, eventGameId),
   });
 
-  const syncStateQuery = useQuery({
-    queryKey: ["game-session-state", eventId, directionId, eventGameId, sessionIdParam],
-    queryFn: () => eventsApi.getSessionState(eventId, directionId, eventGameId, sessionIdParam),
+  useEffect(() => {
+    hasStartedRef.current = false;
+  }, [eventId, directionId, eventGameId, hasSessionIdParam]);
+
+  useEffect(() => {
+    if (!isAuthorized) return;
+    if (!Number.isFinite(eventId) || !Number.isFinite(directionId) || !Number.isFinite(eventGameId)) return;
+    if (hasSessionIdParam) return;
+    if (hasStartedRef.current) return;
+    hasStartedRef.current = true;
+    startSessionMutation.mutate();
+  }, [directionId, eventGameId, eventId, hasSessionIdParam, isAuthorized, startSessionMutation]);
+
+  const activeSessionId = hasSessionIdParam
+    ? sessionIdParam
+    : startSessionMutation.data?.data.session_id ?? null;
+
+  const sessionStateQuery = useQuery({
+    queryKey: ["game-session-state", eventId, directionId, eventGameId, activeSessionId],
+    queryFn: () => eventsApi.getSessionState(eventId, directionId, eventGameId, activeSessionId as number),
     enabled:
-      Number.isFinite(sessionIdParam) &&
-      sessionIdParam > 0 &&
+      activeSessionId !== null &&
       Number.isFinite(eventId) &&
       Number.isFinite(directionId) &&
       Number.isFinite(eventGameId) &&
@@ -83,15 +98,14 @@ export default function GameSessionPage() {
         progress: submitAnswerMutation.data.data.progress,
         current_question: submitAnswerMutation.data.data.next_question,
       } as RuntimeState)
-    : syncStateQuery.data?.data
-      ? toRuntimeState(syncStateQuery.data.data)
-      : bootstrapQuery.data?.data
-        ? toRuntimeState(bootstrapQuery.data.data)
+    : sessionStateQuery.data?.data
+      ? toRuntimeState(sessionStateQuery.data.data)
+      : startSessionMutation.data?.data
+        ? toRuntimeState(startSessionMutation.data.data)
         : null;
 
-  const gameTitle = bootstrapQuery.data?.data?.game.title ?? "Игра";
+  const gameTitle = startSessionMutation.data?.data?.game.title ?? "Игра";
   const lastResult = submitAnswerMutation.data?.data?.answer_result ?? null;
-
   const currentQuestion = state?.current_question;
 
   const canSubmit = !!(
@@ -120,7 +134,8 @@ export default function GameSessionPage() {
     });
   };
 
-  const currentQuestionView = state?.current_question;
+  const isLoadingInitialState = (startSessionMutation.isPending || sessionStateQuery.isLoading) && !state;
+  const initialError = startSessionMutation.error ?? sessionStateQuery.error;
 
   return (
     <RequireAuth>
@@ -130,11 +145,11 @@ export default function GameSessionPage() {
             {gameTitle}
           </Typography>
 
-          {(bootstrapQuery.isLoading || syncStateQuery.isLoading) && <Typography>Загрузка сессии...</Typography>}
+          {isLoadingInitialState && <Typography>Загрузка сессии...</Typography>}
 
-          {(bootstrapQuery.error || syncStateQuery.error) && (
+          {initialError && (
             <Typography className="text-red-600" size="sm">
-              {getErrorMessage(bootstrapQuery.error ?? syncStateQuery.error, "Не удалось открыть игровую сессию")}
+              {getErrorMessage(initialError, "Не удалось открыть игровую сессию")}
             </Typography>
           )}
 
@@ -180,19 +195,19 @@ export default function GameSessionPage() {
             </Card>
           )}
 
-          {state?.status === "active" && currentQuestionView && (
+          {state?.status === "active" && currentQuestion && (
             <Card>
               <Typography as="h2" size="lg" weight="bold">
                 Вопрос
               </Typography>
               <Typography className="mt-2 text-neutral-800" size="md">
-                {currentQuestionView.prompt}
+                {currentQuestion.prompt}
               </Typography>
               <Typography className="mt-2 text-neutral-600" size="sm">
-                Сложность: {currentQuestionView.difficulty}, баллы: {currentQuestionView.score}
+                Сложность: {currentQuestion.difficulty}, баллы: {currentQuestion.score}
               </Typography>
 
-              {currentQuestionView.engine === "question_answer" && (
+              {currentQuestion.engine === "question_answer" && (
                 <div className="mt-4">
                   <Input
                     label="Ваш ответ"
@@ -203,9 +218,9 @@ export default function GameSessionPage() {
                 </div>
               )}
 
-              {currentQuestionView.engine === "quiz" && (
+              {currentQuestion.engine === "quiz" && (
                 <div className="mt-4 space-y-2">
-                  {currentQuestionView.options.map((option) => (
+                  {currentQuestion.options.map((option) => (
                     <button
                       key={option.option_id}
                       type="button"
@@ -241,8 +256,12 @@ export default function GameSessionPage() {
             <Button
               variant="secondary"
               onClick={() => {
-                bootstrapQuery.refetch();
-                syncStateQuery.refetch();
+                if (activeSessionId) {
+                  sessionStateQuery.refetch();
+                } else {
+                  hasStartedRef.current = true;
+                  startSessionMutation.mutate();
+                }
               }}
             >
               Обновить состояние

@@ -36,7 +36,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                                 <>
                                     <span className="text-sm font-medium text-neutral-600">{user.full_name}</span>
                                     <button
-                                        onClick={logout}
+                                        onClick={() => {
+                                            void logout();
+                                        }}
                                         className="text-sm font-medium rounded-md px-2 py-1 outline-none transition-colors hover:text-neutral-600 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]"
                                     >
                                         Выйти
@@ -95,7 +97,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                                     <>
                                         <span className="px-2 py-1 text-neutral-600">{user.full_name}</span>
                                         <button
-                                            onClick={() => { logout(); closeMenu(); }}
+                                            onClick={() => {
+                                                void logout();
+                                                closeMenu();
+                                            }}
                                             className="rounded-md px-2 py-1 text-left outline-none hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]"
                                         >
                                             Выйти

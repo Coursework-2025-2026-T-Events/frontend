@@ -4,7 +4,6 @@ import Container from "@/components/ui/Container";
 import Card from "@/components/ui/Card";
 import Typography from "@/components/ui/Typography";
 import Badge from "@/components/ui/Badge";
-import Button from "@/components/ui/Button";
 import RequireAuth from "@/features/auth/RequireAuth";
 
 export default function StanderInventoryPage() {
@@ -37,11 +36,9 @@ export default function StanderInventoryPage() {
                   {item.status === "out" && <Badge variant="danger">Закончился</Badge>}
                 </div>
 
-                <div className="mt-4 flex gap-2">
-                  <Button variant="secondary">В наличии</Button>
-                  <Button variant="secondary">Почти закончился</Button>
-                  <Button variant="secondary">Закончился</Button>
-                </div>
+                <Typography className="mt-4 text-neutral-600" size="sm">
+                  Управление остатками будет подключено после интеграции inventory API.
+                </Typography>
               </Card>
             ))}
           </div>

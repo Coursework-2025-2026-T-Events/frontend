@@ -1,15 +1,39 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import Container from "@/components/ui/Container";
 import Card from "@/components/ui/Card";
 import Typography from "@/components/ui/Typography";
 import Button from "@/components/ui/Button";
 import RequireAuth from "@/features/auth/RequireAuth";
+import { useParticipationStore } from "@/features/participation/store";
+import { useQuery } from "@tanstack/react-query";
+import { eventsApi } from "@/features/events/api";
+import { useIsAuthorized } from "@/features/auth/useIsAuthorized";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
 export default function RewardPage() {
-  // TODO: заменить заглушки реальными данными (баллы, статус приза, QR)
-  const hasReward = false; // заглушка
-  const rewardType = "small"; // "small" | "big" (заглушка)
+  const params = useParams();
+  const eventId = Number(params.id);
+  const { directionId } = useParticipationStore();
+  const isAuthorized = useIsAuthorized();
+
+  const hasSelectedDirection = directionId !== null;
+
+  const rewardQuery = useQuery({
+    queryKey: ["reward-summary", eventId, directionId],
+    queryFn: () => eventsApi.directionGames(eventId, directionId as number),
+    enabled: Number.isFinite(eventId) && hasSelectedDirection && isAuthorized,
+  });
+
+  const summary = rewardQuery.data?.data.summary;
+  const rewardStatus = summary
+    ? summary.big_reward_unlocked
+      ? "Доступен большой приз"
+      : summary.small_reward_unlocked
+        ? "Доступен малый приз"
+        : "Приз пока недоступен"
+    : "Приз пока недоступен";
 
   return (
     <RequireAuth>
@@ -19,38 +43,53 @@ export default function RewardPage() {
             Приз
           </Typography>
 
+          {!hasSelectedDirection && (
+            <Typography className="mt-3 text-red-600" size="sm">
+              Сначала выберите направление мероприятия, чтобы увидеть статус приза.
+            </Typography>
+          )}
+
+          {rewardQuery.isLoading && hasSelectedDirection && (
+            <Typography className="mt-3" size="sm">
+              Загружаем статус приза...
+            </Typography>
+          )}
+
+          {rewardQuery.error && (
+            <Typography className="mt-3 text-red-600" size="sm">
+              {getErrorMessage(rewardQuery.error, "Не удалось загрузить статус приза")}
+            </Typography>
+          )}
+
           <Card className="mt-6">
             <Typography as="h2" size="lg" weight="bold">
               Ваш статус
             </Typography>
             <Typography className="mt-2 text-neutral-600" size="sm">
-              {hasReward
-                ? `Приз уже получен (${rewardType === "small" ? "малый" : "большой"})`
-                : "Приз ещё не доступен"}
+              {rewardStatus}
             </Typography>
 
-            {!hasReward && (
-              <Button className="mt-4">
-                Получить приз (QR)
-              </Button>
+            {summary && (
+              <div className="mt-4 space-y-2">
+                <Typography className="text-neutral-700" size="sm">
+                  Баллы мероприятия: {summary.current_event_score} / {summary.event_max_score}
+                </Typography>
+                <Typography className="text-neutral-700" size="sm">
+                  Малый приз: {summary.current_event_score} / {summary.small_reward_threshold}
+                </Typography>
+                <Typography className="text-neutral-700" size="sm">
+                  Большой приз: {summary.current_event_score} / {summary.big_reward_threshold}
+                </Typography>
+              </div>
             )}
 
-            {hasReward && (
-              <Typography className="mt-4 text-neutral-600" size="sm">
-                Выдача повторного приза невозможна.
-              </Typography>
-            )}
+            <Button
+              className="mt-4"
+              disabled={!summary || (!summary.small_reward_unlocked && !summary.big_reward_unlocked)}
+            >
+              Получить приз (QR)
+            </Button>
           </Card>
-
-          {/* QR код — заглушка */}
-          {!hasReward && (
-            <Card className="mt-6 flex flex-col items-center justify-center">
-              <div className="h-40 w-40 rounded bg-neutral-200" />
-              <Typography className="mt-3 text-neutral-600" size="sm">
-                Здесь будет QR‑код
-              </Typography>
-            </Card>
-          )}
         </div>
       </Container>
     </RequireAuth>

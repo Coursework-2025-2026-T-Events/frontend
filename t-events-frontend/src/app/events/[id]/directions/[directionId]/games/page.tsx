@@ -11,7 +11,7 @@ import { useParams, useRouter } from "next/navigation";
 import { eventsApi } from "@/features/events/api";
 import type { DirectionGamesItemDTO } from "@/lib/api/types";
 import { getErrorMessage } from "@/lib/getErrorMessage";
-import { useAuth } from "@/features/auth/AuthProvider";
+import { useIsAuthorized } from "@/features/auth/useIsAuthorized";
 
 function getStatusLabel(status: DirectionGamesItemDTO["status"]) {
   if (status === "completed") return "Завершена";
@@ -30,8 +30,7 @@ export default function GamesPage() {
   const router = useRouter();
   const eventId = Number(params.id);
   const directionId = Number(params.directionId);
-  const { user, isBootstrapping } = useAuth();
-  const isAuthorized = !isBootstrapping && !!user;
+  const isAuthorized = useIsAuthorized();
 
   const { directionId: selectedDirectionId } = useParticipationStore();
   const isSelected = directionId === selectedDirectionId;

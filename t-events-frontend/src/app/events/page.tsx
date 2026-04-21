@@ -6,6 +6,7 @@ import { eventsApi } from "@/features/events/api";
 import Link from "next/link";
 import Card from "@/components/ui/Card";
 import Typography from "@/components/ui/Typography";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
 export default function EventsPage() {
   const { data, isLoading, error } = useQuery({
@@ -21,7 +22,7 @@ export default function EventsPage() {
         </Typography>
 
         {isLoading && <p className="mt-4">Загрузка...</p>}
-        {error && <p className="mt-4 text-red-600">Ошибка загрузки</p>}
+        {error && <p className="mt-4 text-red-600">{getErrorMessage(error, "Ошибка загрузки")}</p>}
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data?.data.map((event) => (

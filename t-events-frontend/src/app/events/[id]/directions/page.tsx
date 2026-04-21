@@ -9,14 +9,13 @@ import Typography from "@/components/ui/Typography";
 import Button from "@/components/ui/Button";
 import RequireAuth from "@/features/auth/RequireAuth";
 import { useParticipationStore } from "@/features/participation/store";
-import { useAuth } from "@/features/auth/AuthProvider";
+import { useIsAuthorized } from "@/features/auth/useIsAuthorized";
 
 export default function DirectionsPage() {
   const params = useParams();
   const router = useRouter();
   const eventId = Number(params.id);
-  const { user, isBootstrapping } = useAuth();
-  const isAuthorized = !isBootstrapping && !!user;
+  const isAuthorized = useIsAuthorized();
 
   const { directionId: selectedDirectionId, selectDirection } = useParticipationStore();
 
@@ -56,19 +55,13 @@ export default function DirectionsPage() {
                     className="mt-4 w-full"
                     variant={isSelected ? "secondary" : "primary"}
                     onClick={() => {
-                      selectDirection(eventId, d.direction_id);
+                      if (!isSelected) {
+                        selectDirection(eventId, d.direction_id);
+                      }
                       router.push(`/events/${eventId}/directions/${d.direction_id}/games`);
                     }}
                   >
                     {isSelected ? "Открыть игры" : "Выбрать и открыть"}
-                  </Button>
-
-                  <Button
-                    className="mt-4"
-                    disabled={!isSelected}
-                    onClick={() => router.push(`/events/${eventId}/directions/${d.direction_id}/games`)}
-                  >
-                    Перейти к играм
                   </Button>
                 </Card>
               );

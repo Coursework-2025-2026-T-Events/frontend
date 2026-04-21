@@ -7,4 +7,5 @@ export const authApi = {
   login: (payload: { email: string; password: string }) =>
     api.post<LoginResponse>("/auth/login", payload),
   me: () => api.get<UserResponse>("/me"),
+  logout: () => api.post<{ data: { success: boolean } }>("/auth/logout"),
 };

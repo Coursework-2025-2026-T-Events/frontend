@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Container from "@/components/ui/Container";
 import { eventsApi } from "@/features/events/api";
 import Link from "next/link";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
 export default function EventDetailsPage() {
   const params = useParams();
@@ -17,7 +18,13 @@ export default function EventDetailsPage() {
   });
 
   if (isLoading) return <Container><p className="mt-6">Загрузка...</p></Container>;
-  if (error || !data) return <Container><p className="mt-6 text-red-600">Ошибка</p></Container>;
+  if (error || !data) {
+    return (
+      <Container>
+        <p className="mt-6 text-red-600">{getErrorMessage(error, "Ошибка загрузки мероприятия")}</p>
+      </Container>
+    );
+  }
 
   const event = data.data;
 

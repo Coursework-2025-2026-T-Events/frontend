@@ -1,47 +1,61 @@
 "use client";
 
 import React, { createContext, useContext, useMemo, useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { UserDTO } from "@/lib/api/types";
 import { tokenStore } from "@/lib/auth/tokenStore";
 import { refreshSession } from "./refresh";
+import { authApi } from "./api";
 
 type AuthContextValue = {
     user: UserDTO | null;
     setUser: (user: UserDTO | null) => void;
-    logout: () => void;
+    logout: () => Promise<void>;
     isBootstrapping: boolean;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<UserDTO | null>(null);
-    const [isBootstrapping, setIsBootstrapping] = useState(true);
-    const isMounted = React.useRef(false); // Защита от StrictMode
+    const [userOverride, setUserOverride] = useState<UserDTO | null | undefined>(undefined);
 
-    useEffect(() => {
-        if (isMounted.current) return;
-        isMounted.current = true;
-
-        // Попытка восстановить сессию при старте
-        (async () => {
+    const bootstrapQuery = useQuery({
+        queryKey: ["auth", "bootstrap-session"],
+        queryFn: async () => {
             try {
                 const res = await refreshSession();
                 tokenStore.set(res.data.access_token);
-                setUser(res.data.user);
+                return res.data.user;
             } catch {
-                // refresh не удался — остаёмся гостем
                 tokenStore.set(null);
-                setUser(null);
-            } finally {
-                setIsBootstrapping(false);
+                return null;
             }
-        })();
-    }, []);
+        },
+        retry: false,
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
 
-    const logout = () => {
+    useEffect(() => {
+        if (!bootstrapQuery.isError) return;
         tokenStore.set(null);
-        setUser(null);
+    }, [bootstrapQuery.isError]);
+
+    const user = userOverride ?? bootstrapQuery.data ?? null;
+    const isBootstrapping = userOverride === undefined && bootstrapQuery.isPending;
+
+    const setUser = (nextUser: UserDTO | null) => {
+        setUserOverride(nextUser);
+    };
+
+    const logout = async () => {
+        try {
+            await authApi.logout();
+        } catch {
+            // ignore logout endpoint errors on client side
+        }
+        tokenStore.set(null);
+        setUserOverride(null);
     };
 
     const value = useMemo(
@@ -54,6 +68,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
     const ctx = useContext(AuthContext);
-    if (!ctx) throw new Error("useAuth must be used внутри AuthProvider");
+    if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
     return ctx;
 }
