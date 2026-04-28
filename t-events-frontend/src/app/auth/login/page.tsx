@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Container from "@/components/ui/Container";
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
+import ConsentNotice from "@/components/auth/ConsentNotice";
 import PasswordVisibilityButton from "@/components/ui/PasswordVisibilityButton";
 import VkIcon from "@/components/ui/VkIcon";
 import { authApi } from "@/features/auth/api";
@@ -25,6 +26,40 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+type AuthFieldProps = React.InputHTMLAttributes<HTMLInputElement> & {
+  label: string;
+  error?: string;
+};
+
+function AuthField({ label, error, id, className, ...props }: AuthFieldProps) {
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const errorId = `${inputId}-error`;
+
+  return (
+    <label htmlFor={inputId} className="block">
+      <span className="mb-2 block text-[13px] leading-[18px] text-[var(--color-brand-graphite)]">{label}</span>
+      <input
+        {...props}
+        id={inputId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : props["aria-describedby"]}
+        className={[
+          "h-14 w-full rounded-[var(--radius-md)] border border-[var(--color-brand-line)] bg-white px-4 text-[15px] leading-5 text-[var(--color-brand-ink)] outline-none transition-colors placeholder:text-[var(--color-brand-muted)] focus:border-[var(--color-brand-ink)] disabled:bg-[var(--color-brand-panel)]",
+          className,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      />
+      {error && (
+        <span id={errorId} role="alert" className="mt-1.5 block text-[13px] leading-[18px] text-red-600">
+          {error}
+        </span>
+      )}
+    </label>
+  );
+}
+
 function getErrorField(error: unknown): keyof FormData | null {
   if (!(error instanceof ApiError)) return null;
   if (typeof error.details !== "object" || error.details === null) return null;
@@ -38,15 +73,21 @@ export default function LoginPage() {
   const { setUser } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
   const [isRegistered] = useState(() =>
-    typeof window === "undefined" ? false : new URLSearchParams(window.location.search).get("registered") === "1"
+    typeof window === "undefined" ? false : new URLSearchParams(window.location.search).get("registered") === "1",
   );
   const [nextPath] = useState(() =>
-    typeof window === "undefined" ? "/events" : getSafeRedirectPath(new URLSearchParams(window.location.search).get("next"))
+    typeof window === "undefined"
+      ? "/events"
+      : getSafeRedirectPath(new URLSearchParams(window.location.search).get("next")),
   );
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-  const { register, handleSubmit, setError, formState: { errors, isSubmitting } } =
-    useForm<FormData>({ resolver: zodResolver(schema) });
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (values: FormData) => {
     setServerError(null);
@@ -71,63 +112,95 @@ export default function LoginPage() {
   };
 
   return (
-    <Container>
-      <div className="mx-auto mt-10 w-full max-w-md rounded-[var(--radius-lg)] border p-6 shadow-[var(--shadow-card)]">
-        <h1 className="text-xl font-bold">Вход</h1>
-        <p className="mt-1 text-sm text-neutral-600">Введите адрес электронной почты и пароль</p>
+    <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden bg-[var(--color-brand-mist)]">
+      <Image
+        src="/images/auth-background.png"
+        alt=""
+        fill
+        sizes="100vw"
+        priority
+        unoptimized
+        className="pointer-events-none hidden object-cover lg:block"
+        aria-hidden
+      />
 
-        {isRegistered && (
-          <p role="status" className="mt-4 rounded-[var(--radius-md)] border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-            Аккаунт создан. Теперь войдите с вашей электронной почтой и паролем.
-          </p>
-        )}
+      <Container>
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-12">
+          <section className="relative z-10 w-full max-w-[560px] rounded-[24px] bg-white p-6 sm:p-10">
+            <div className="text-center">
+              <h1 className="text-[24px] font-medium leading-7 text-[var(--color-brand-ink)]">Вход</h1>
+              <p className="mx-auto mt-3 max-w-sm text-[15px] leading-6 text-[var(--color-brand-graphite)]">
+                Введите почту и пароль, чтобы продолжить участие
+              </p>
+            </div>
 
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
-          <Input label="Электронная почта" type="email" autoComplete="email" {...register("email")} error={errors.email?.message} />
-          <div className="relative">
-            <Input
-              label="Пароль"
-              type={isPasswordVisible ? "text" : "password"}
-              autoComplete="current-password"
-              className="pr-12"
-              {...register("password")}
-              error={errors.password?.message}
-            />
-            <PasswordVisibilityButton
-              isVisible={isPasswordVisible}
-              onClick={() => setIsPasswordVisible((value) => !value)}
-            />
-          </div>
+            {isRegistered && (
+              <p
+                role="status"
+                className="mt-6 rounded-[var(--radius-md)] bg-[var(--color-brand-panel)] p-4 text-[15px] leading-6 text-[var(--color-brand-graphite)]"
+              >
+                Аккаунт создан. Теперь войдите с вашей электронной почтой и паролем.
+              </p>
+            )}
 
-          {serverError && (
-            <p role="alert" className="text-sm text-red-600">
-              {serverError}
+            <form className="mt-7 space-y-4" onSubmit={handleSubmit(onSubmit)}>
+              <AuthField label="Электронная почта" type="email" autoComplete="email" {...register("email")} error={errors.email?.message} />
+              <div className="relative">
+                <AuthField
+                  label="Пароль"
+                  type={isPasswordVisible ? "text" : "password"}
+                  autoComplete="current-password"
+                  className="pr-12"
+                  {...register("password")}
+                  error={errors.password?.message}
+                />
+                <PasswordVisibilityButton
+                  isVisible={isPasswordVisible}
+                  onClick={() => setIsPasswordVisible((value) => !value)}
+                />
+              </div>
+
+              {serverError && (
+                <p
+                  role="alert"
+                  className="rounded-[var(--radius-md)] bg-red-50 p-3 text-[13px] leading-[18px] text-red-700"
+                >
+                  {serverError}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-brand-yellow)] px-6 py-3 text-[15px] font-normal leading-5 text-[var(--color-brand-ink)] outline-none transition hover:bg-[var(--color-brand-yellow-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-ink)] disabled:opacity-60"
+              >
+                Войти
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+              </button>
+            </form>
+
+            <ConsentNotice />
+
+            <a
+              href={authApi.vkStartPath}
+              className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-brand-panel)] px-6 py-3 text-[15px] font-bold leading-6 text-[var(--color-brand-ink)] outline-none transition hover:bg-[#eef0f3] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]"
+              onClick={() => sessionStorage.setItem(OAUTH_NEXT_PATH_KEY, nextPath)}
+            >
+              Войти с <VkIcon />
+            </a>
+
+            <p className="mt-5 text-center text-[15px] leading-6 text-[var(--color-brand-graphite)]">
+              Нет аккаунта?{" "}
+              <Link
+                className="text-[#126df7] underline-offset-4 hover:underline"
+                href={`/auth/register?next=${encodeURIComponent(nextPath)}`}
+              >
+                Зарегистрироваться
+              </Link>
             </p>
-          )}
-
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            Войти
-          </Button>
-        </form>
-        <Button
-          href={authApi.vkStartPath}
-          variant="secondary"
-          className="mt-3 w-full gap-2"
-          reloadDocument
-          onClick={() => sessionStorage.setItem(OAUTH_NEXT_PATH_KEY, nextPath)}
-        >
-          Войти через <VkIcon />
-        </Button>
-        <p className="mt-4 text-center text-sm text-neutral-600">
-          Нет аккаунта?{" "}
-          <Link
-            className="font-medium text-neutral-900 underline-offset-4 hover:underline"
-            href={`/auth/register?next=${encodeURIComponent(nextPath)}`}
-          >
-            Зарегистрироваться
-          </Link>
-        </p>
-      </div>
-    </Container>
+          </section>
+        </div>
+      </Container>
+    </div>
   );
 }

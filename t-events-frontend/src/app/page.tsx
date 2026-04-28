@@ -65,7 +65,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mx-auto mt-12 flex max-w-5xl flex-col gap-6" aria-label="Путь участника">
+          <div className="mx-auto mt-16 flex max-w-5xl flex-col gap-6 sm:mt-20" aria-label="Путь участника">
             {heroSteps.map((step, index) => {
               const isReversed = index % 2 === 1;
 
