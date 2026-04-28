@@ -13,14 +13,14 @@ export default function Select({ label, error, className, id, children, ...props
 
   return (
     <label className="block" htmlFor={selectId}>
-      {label && <span className="mb-1.5 block text-sm font-medium text-neutral-700">{label}</span>}
+      {label && <span className="mb-1.5 block text-sm font-semibold text-[var(--color-brand-graphite)]">{label}</span>}
       <select
         {...props}
         id={selectId}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : props["aria-describedby"]}
         className={clsx(
-          "h-10 w-full rounded-[var(--radius-md)] border border-neutral-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[var(--color-brand-black)] disabled:bg-neutral-50 disabled:text-neutral-500",
+          "h-12 w-full rounded-[var(--radius-md)] border border-[var(--color-brand-line)] bg-white px-4 text-sm outline-none transition-colors focus:border-[var(--color-brand-black)] disabled:bg-neutral-50 disabled:text-neutral-500",
           className
         )}
       >

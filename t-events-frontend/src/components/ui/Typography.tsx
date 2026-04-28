@@ -3,7 +3,7 @@ import type { ElementType, ComponentPropsWithoutRef } from "react";
 
 type TypographyOwnProps = {
   as?: "h1" | "h2" | "h3" | "p" | "span";
-  size?: "2xl" | "xl" | "lg" | "md" | "sm";
+  size?: "2xl" | "xl" | "lg" | "md" | "sm" | "inherit";
   weight?: "regular" | "medium" | "bold";
   className?: string;
 };
@@ -27,6 +27,7 @@ export default function Typography<T extends ElementType = "p">({
     lg: "text-lg",
     md: "text-base",
     sm: "text-sm",
+    inherit: "",
   };
 
   const weights = {

@@ -1,77 +1,52 @@
+import { ChartNoAxesColumnIncreasing, ListChecks, ShieldCheck } from "lucide-react";
 import Typography from "@/components/ui/Typography";
 
 const highlights = [
-    {
-        title: "Понятный первый экран",
-        description: "Сразу видно, что делать дальше: начать знакомство, открыть каталог или войти в профиль.",
-        proof: "Меньше ошибок на старте",
-        icon: (
-            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                    d="M4 6h16M4 12h10M4 18h7"
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
-                />
-            </svg>
-        ),
-    },
-    {
-        title: "Прозрачный прогресс",
-        description: "Баллы и шаги фиксируются автоматически, поэтому не нужно вести таблицы вручную.",
-        proof: "Единый источник состояния",
-        icon: (
-            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                    d="M12 3v18M8 8h8M8 16h8"
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
-                />
-            </svg>
-        ),
-    },
-    {
-        title: "Управляемый финиш",
-        description: "Когда цель достигнута, выдача награды проходит по готовому процессу без ручного подсчёта.",
-        proof: "Предсказуемый результат",
-        icon: (
-            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                    d="M12 15l-2.3 1.2.4-2.6-1.9-1.8 2.6-.4L12 9l1.2 2.4 2.6.4-1.9 1.8.4 2.6L12 15z"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinejoin="round"
-                />
-                <path d="M5 19h14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-            </svg>
-        ),
-    },
+  {
+    title: "Каталог вместо хаоса",
+    description: "События выглядят как образовательные программы: статус, описание и следующий шаг считываются сразу.",
+    proof: "Быстрый выбор",
+    icon: ListChecks,
+  },
+  {
+    title: "Прогресс прозрачен",
+    description: "Баллы и этапы фиксируются автоматически, поэтому участникам и организаторам не нужны ручные сверки.",
+    proof: "Единое состояние",
+    icon: ChartNoAxesColumnIncreasing,
+  },
+  {
+    title: "Финиш управляем",
+    description: "QR, роли и выдачи отделены от общего каталога, чтобы стойки работали быстро даже на потоке.",
+    proof: "Меньше очередей",
+    icon: ShieldCheck,
+  },
 ];
 
 export default function HomeHighlights() {
-    return (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
-            {highlights.map((item) => (
-                <div
-                    key={item.title}
-                    className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white p-6 shadow-[0_10px_24px_rgba(10,15,30,0.06)] transition-transform duration-200 hover:-translate-y-1"
-                >
-                    <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-[var(--color-brand-yellow)]/25 blur-xl" aria-hidden />
-                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-brand-yellow)]/90 text-[var(--color-brand-black)] sm:h-11 sm:w-11">
-                        {item.icon}
-                    </div>
-                    <Typography as="h3" size="lg" weight="bold" className="text-[var(--color-brand-ink)]">
-                        {item.title}
-                    </Typography>
-                    <Typography as="p" size="sm" className="mt-2 leading-relaxed text-neutral-600">
-                        {item.description}
-                    </Typography>
-                    <p className="mt-5 inline-flex w-fit items-center rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-medium text-neutral-700">
-                        {item.proof}
-                    </p>
-                </div>
-            ))}
-        </div>
-    );
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {highlights.map((item) => {
+        const Icon = item.icon;
+        return (
+          <div
+            key={item.title}
+            className="group flex h-full flex-col rounded-[var(--radius-lg)] border border-[var(--color-brand-line)] bg-white p-6 shadow-[var(--shadow-card)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)]"
+          >
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-md bg-[var(--color-brand-panel)] text-[var(--color-brand-ink)]">
+              <Icon className="h-6 w-6" aria-hidden />
+            </div>
+            <Typography as="h3" size="lg" weight="bold" className="text-[var(--color-brand-ink)]">
+              {item.title}
+            </Typography>
+            <Typography as="p" size="sm" className="mt-3 leading-6 text-[var(--color-brand-muted)]">
+              {item.description}
+            </Typography>
+            <p className="mt-6 w-fit rounded-full bg-[var(--color-brand-panel)] px-3 py-1 text-xs font-semibold text-[var(--color-brand-graphite)]">
+              {item.proof}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
 }

@@ -10,13 +10,13 @@ type Props = {
 
 export default function PageHeader({ title, description, actions, className }: Props) {
   return (
-    <div className={clsx("flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between", className)}>
+    <div className={clsx("flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between", className)}>
       <div>
-        <Typography as="h1" size="xl" weight="bold">
+        <Typography as="h1" size="xl" weight="bold" className="text-[var(--color-brand-ink)]">
           {title}
         </Typography>
         {description && (
-          <Typography className="mt-1 text-neutral-600" size="sm">
+          <Typography className="mt-2 max-w-2xl text-[var(--color-brand-muted)]" size="sm">
             {description}
           </Typography>
         )}

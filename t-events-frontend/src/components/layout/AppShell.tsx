@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { LogOut, Menu, X } from "lucide-react";
 import Container from "@/components/ui/Container";
 import { useAuth } from "@/features/auth/AuthProvider";
 import type { UserRole } from "@/lib/api/types";
@@ -21,23 +22,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isStander = user?.role === "stander" || user?.role === "admin";
   const isAdmin = user?.role === "admin";
   const navLinkClassName =
-    "rounded-md px-2.5 py-2 text-sm font-medium text-neutral-700 outline-none transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]";
+    "rounded-md px-3 py-2 text-sm font-semibold text-[var(--color-brand-graphite)] outline-none transition-colors hover:bg-[var(--color-brand-panel)] hover:text-[var(--color-brand-ink)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]";
   const mobileNavLinkClassName =
-    "rounded-md px-3 py-2 outline-none hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]";
+    "rounded-md px-3 py-2.5 outline-none hover:bg-[var(--color-brand-panel)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]";
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-[var(--color-brand-line)] bg-white/95 backdrop-blur">
         <Container>
-          <div className="flex h-16 items-center justify-between">
+          <div className="flex h-[68px] items-center justify-between">
             <Link
               href="/"
-              className="rounded-md px-2 py-1 text-lg font-bold outline-none transition-shadow hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]"
+              className="flex items-center gap-2 rounded-md px-1 py-1 text-lg font-bold text-[var(--color-brand-ink)] outline-none transition-shadow hover:opacity-85 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]"
             >
-              T-Events
+              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--color-brand-yellow)] text-base font-bold text-[var(--color-brand-ink)]">
+                T
+              </span>
+              <span>T-Events</span>
             </Link>
 
-            <nav className="hidden items-center gap-1 sm:flex">
+            <nav className="hidden items-center gap-1 lg:flex">
               <Link href={routes.events} className={navLinkClassName}>
                 Мероприятия
               </Link>
@@ -66,10 +70,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
               {user ? (
                 <>
-                  <span className="ml-2 max-w-44 truncate text-sm font-medium text-neutral-600">
+                  <span className="ml-2 max-w-44 truncate text-sm font-semibold text-[var(--color-brand-muted)]">
                     {user.full_name}
                     {isStander && (
-                      <span className="ml-1.5 rounded-full bg-[var(--color-brand-yellow)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--color-brand-black)]">
+                      <span className="ml-1.5 rounded-full bg-[var(--color-brand-yellow)] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[var(--color-brand-ink)]">
                         {roleLabels[user.role]}
                       </span>
                     )}
@@ -78,8 +82,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     onClick={() => {
                       void logout();
                     }}
-                    className={navLinkClassName}
+                    className={`${navLinkClassName} inline-flex items-center gap-1.5`}
                   >
+                    <LogOut className="h-4 w-4" aria-hidden />
                     Выйти
                   </button>
                 </>
@@ -90,7 +95,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   </Link>
                   <Link
                     href={routes.register}
-                    className="rounded-md bg-[var(--color-brand-yellow)] px-4 py-2 text-sm font-medium text-black outline-none transition-colors hover:opacity-90 focus-visible:ring-2 focus-visible:ring-black"
+                    className="rounded-md bg-[var(--color-brand-yellow)] px-4 py-2 text-sm font-semibold text-[var(--color-brand-ink)] outline-none transition-colors hover:bg-[var(--color-brand-yellow-hover)] focus-visible:ring-2 focus-visible:ring-black"
                   >
                     Регистрация
                   </Link>
@@ -103,35 +108,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-menu"
               aria-label={isMobileMenuOpen ? "Закрыть меню" : "Открыть меню"}
-              className="rounded-md p-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)] sm:hidden"
+              className="rounded-md p-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)] lg:hidden"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                {isMobileMenuOpen ? (
-                  <path
-                    d="M18 6L6 18M6 6l12 12"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                ) : (
-                  <path
-                    d="M4 6h16M4 12h16M4 18h16"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                )}
-              </svg>
+              {isMobileMenuOpen ? <X className="h-6 w-6" aria-hidden /> : <Menu className="h-6 w-6" aria-hidden />}
             </button>
           </div>
         </Container>
 
         {isMobileMenuOpen && (
-          <div id="mobile-menu" className="border-t border-neutral-100 bg-white sm:hidden">
+          <div id="mobile-menu" className="border-t border-[var(--color-brand-line)] bg-white lg:hidden">
             <Container>
-              <nav className="flex flex-col gap-2 py-4 text-base font-medium">
+              <nav className="flex flex-col gap-2 py-4 text-base font-semibold">
                 <Link href={routes.events} onClick={closeMenu} className={mobileNavLinkClassName}>
                   Мероприятия
                 </Link>
@@ -160,14 +147,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
                 {user ? (
                   <>
-                    <span className="px-3 py-2 text-sm text-neutral-500">{user.full_name}</span>
+                    <span className="px-3 py-2 text-sm text-[var(--color-brand-muted)]">{user.full_name}</span>
                     <button
                       onClick={() => {
                         void logout();
                         closeMenu();
                       }}
-                      className={`text-left ${mobileNavLinkClassName}`}
+                      className={`inline-flex items-center gap-2 text-left ${mobileNavLinkClassName}`}
                     >
+                      <LogOut className="h-4 w-4" aria-hidden />
                       Выйти
                     </button>
                   </>
