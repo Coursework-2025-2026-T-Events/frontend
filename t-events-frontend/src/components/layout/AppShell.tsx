@@ -14,6 +14,12 @@ const roleLabels: Record<UserRole, string> = {
   admin: "админ",
 };
 
+const navLinkClassName =
+  "px-0 py-2 text-[15px] font-normal leading-6 text-[var(--color-brand-ink)]/80 outline-none transition-colors hover:text-[var(--color-brand-ink)] focus-visible:rounded-[var(--radius-md)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]";
+
+const mobileNavLinkClassName =
+  "rounded-[var(--radius-md)] px-3 py-2.5 text-[15px] font-normal leading-6 outline-none hover:bg-[var(--color-brand-panel)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]";
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -21,56 +27,58 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const closeMenu = () => setIsMobileMenuOpen(false);
   const isStander = user?.role === "stander" || user?.role === "admin";
   const isAdmin = user?.role === "admin";
-  const navLinkClassName =
-    "rounded-md px-3 py-2 text-sm font-semibold text-[var(--color-brand-graphite)] outline-none transition-colors hover:bg-[var(--color-brand-panel)] hover:text-[var(--color-brand-ink)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]";
-  const mobileNavLinkClassName =
-    "rounded-md px-3 py-2.5 outline-none hover:bg-[var(--color-brand-panel)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]";
+
+  const participantLinks = (
+    <>
+      <Link href={routes.events} className={navLinkClassName}>
+        Мероприятия
+      </Link>
+      {user?.role === "participant" && (
+        <Link href={routes.currentParticipation} className={navLinkClassName}>
+          Текущее участие
+        </Link>
+      )}
+      {isStander && (
+        <>
+          <Link href={routes.standerScan} className={navLinkClassName}>
+            Сканер QR
+          </Link>
+          <Link href={routes.standerInventory} className={navLinkClassName}>
+            Выдачи
+          </Link>
+        </>
+      )}
+      {isAdmin && (
+        <Link href={routes.adminEvents} className={navLinkClassName}>
+          Админка
+        </Link>
+      )}
+    </>
+  );
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-50 border-b border-[var(--color-brand-line)] bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur">
         <Container>
-          <div className="flex h-[68px] items-center justify-between">
-            <Link
-              href="/"
-              className="flex items-center gap-2 rounded-md px-1 py-1 text-lg font-bold text-[var(--color-brand-ink)] outline-none transition-shadow hover:opacity-85 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--color-brand-yellow)] text-base font-bold text-[var(--color-brand-ink)]">
-                T
-              </span>
-              <span>T-Events</span>
-            </Link>
-
-            <nav className="hidden items-center gap-1 lg:flex">
-              <Link href={routes.events} className={navLinkClassName}>
-                Мероприятия
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center gap-9">
+              <Link
+                href="/"
+                aria-label="T-Events"
+                className="flex h-[34px] w-[29px] items-center justify-center rounded-[var(--radius-md)] outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]"
+              >
+                <span className="flex h-[34px] w-[29px] items-center justify-center rounded-b-[10px] rounded-t-sm bg-[var(--color-brand-yellow)] text-base font-bold leading-6 text-[var(--color-brand-ink)]">
+                  T
+                </span>
               </Link>
-              {user?.role === "participant" && (
-                <Link href={routes.currentParticipation} className={navLinkClassName}>
-                  Текущее участие
-                </Link>
-              )}
 
-              {isStander && (
-                <>
-                  <Link href={routes.standerScan} className={navLinkClassName}>
-                    Сканер QR
-                  </Link>
-                  <Link href={routes.standerInventory} className={navLinkClassName}>
-                    Выдачи
-                  </Link>
-                </>
-              )}
+              <nav className="hidden items-center gap-8 lg:flex">{participantLinks}</nav>
+            </div>
 
-              {isAdmin && (
-                <Link href={routes.adminEvents} className={navLinkClassName}>
-                  Админка
-                </Link>
-              )}
-
+            <nav className="hidden items-center gap-6 lg:flex">
               {user ? (
                 <>
-                  <span className="ml-2 max-w-44 truncate text-sm font-semibold text-[var(--color-brand-muted)]">
+                  <span className="max-w-44 truncate text-[15px] font-normal leading-6 text-[var(--color-brand-muted)]">
                     {user.full_name}
                     {isStander && (
                       <span className="ml-1.5 rounded-full bg-[var(--color-brand-yellow)] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[var(--color-brand-ink)]">
@@ -95,7 +103,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   </Link>
                   <Link
                     href={routes.register}
-                    className="rounded-md bg-[var(--color-brand-yellow)] px-4 py-2 text-sm font-semibold text-[var(--color-brand-ink)] outline-none transition-colors hover:bg-[var(--color-brand-yellow-hover)] focus-visible:ring-2 focus-visible:ring-black"
+                    className="rounded-[var(--radius-md)] bg-[var(--color-brand-panel)] px-4 py-2 text-[15px] font-normal leading-5 text-[#126df7] outline-none transition-colors hover:bg-[#edf3ff] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]"
                   >
                     Регистрация
                   </Link>
@@ -108,7 +116,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-menu"
               aria-label={isMobileMenuOpen ? "Закрыть меню" : "Открыть меню"}
-              className="rounded-md p-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)] lg:hidden"
+              className="rounded-[var(--radius-md)] p-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)] lg:hidden"
             >
               {isMobileMenuOpen ? <X className="h-6 w-6" aria-hidden /> : <Menu className="h-6 w-6" aria-hidden />}
             </button>
@@ -116,9 +124,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </Container>
 
         {isMobileMenuOpen && (
-          <div id="mobile-menu" className="border-t border-[var(--color-brand-line)] bg-white lg:hidden">
+          <div id="mobile-menu" className="bg-white shadow-[var(--shadow-card)] lg:hidden">
             <Container>
-              <nav className="flex flex-col gap-2 py-4 text-base font-semibold">
+              <nav className="flex flex-col gap-2 py-4">
                 <Link href={routes.events} onClick={closeMenu} className={mobileNavLinkClassName}>
                   Мероприятия
                 </Link>
@@ -127,7 +135,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     Текущее участие
                   </Link>
                 )}
-
                 {isStander && (
                   <>
                     <Link href={routes.standerScan} onClick={closeMenu} className={mobileNavLinkClassName}>
@@ -138,16 +145,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     </Link>
                   </>
                 )}
-
                 {isAdmin && (
                   <Link href={routes.adminEvents} onClick={closeMenu} className={mobileNavLinkClassName}>
                     Админка
                   </Link>
                 )}
-
                 {user ? (
                   <>
-                    <span className="px-3 py-2 text-sm text-[var(--color-brand-muted)]">{user.full_name}</span>
+                    <span className="px-3 py-2 text-[15px] leading-6 text-[var(--color-brand-muted)]">
+                      {user.full_name}
+                    </span>
                     <button
                       onClick={() => {
                         void logout();
