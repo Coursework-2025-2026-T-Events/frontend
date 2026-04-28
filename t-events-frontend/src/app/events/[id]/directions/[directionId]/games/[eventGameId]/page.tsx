@@ -481,7 +481,7 @@ export default function GameSessionPage() {
                                 }}
                                 className={clsx(
                                   "group flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-3 text-left text-[16px] leading-6 outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--color-brand-black)] focus-visible:ring-offset-4 disabled:cursor-default sm:gap-5 sm:py-2 sm:text-[20px] sm:leading-8",
-                                  selected && "text-[#009c38]",
+                                  selected && !isAnsweredQuestion && "bg-[#eceff4] text-[var(--color-brand-ink)] ring-1 ring-inset ring-[#cfd5df]",
                                   selected &&
                                     isCorrectAnsweredQuestion &&
                                     "bg-[#f2fbf5] text-[#237a3b]",
@@ -496,7 +496,8 @@ export default function GameSessionPage() {
                                 <span
                                   className={clsx(
                                     "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-panel)] text-transparent transition sm:h-8 sm:w-8",
-                                    selected && "bg-[#dff4e8] text-[#4bd36b]",
+                                    selected && !isAnsweredQuestion && "bg-white text-[#8a94a6] ring-1 ring-inset ring-[#c2cad6]",
+                                    selected && isCorrectAnsweredQuestion && "bg-[#dff4e8] text-[#4bd36b]",
                                     selected && isWrongAnsweredQuestion && "bg-red-50 text-red-500"
                                   )}
                                   aria-hidden

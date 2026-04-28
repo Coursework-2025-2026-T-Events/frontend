@@ -117,18 +117,31 @@ a[aria-disabled="true"] {
   animation: rewardMarkerUnlock 760ms ease-out both;
 }
 
+.reward-marker-unlocked-compact {
+  animation-name: rewardMarkerUnlockCompact;
+}
+
 @keyframes rewardMarkerUnlock {
   0% {
-    transform: translate(-50%, -50%) scale(0.72);
     box-shadow: 0 0 0 0 rgba(254, 221, 46, 0.58);
   }
   56% {
-    transform: translate(-50%, -50%) scale(1.14);
-    box-shadow: 0 0 0 9px rgba(254, 221, 46, 0.18);
+    box-shadow: 0 2px 8px rgba(16, 17, 20, 0.14), 0 0 0 7px rgba(254, 221, 46, 0.16);
   }
   100% {
-    transform: translate(-50%, -50%) scale(1);
     box-shadow: 0 2px 10px rgba(16, 17, 20, 0.16), 0 0 0 0 rgba(254, 221, 46, 0);
+  }
+}
+
+@keyframes rewardMarkerUnlockCompact {
+  0% {
+    box-shadow: 0 0 0 0 rgba(254, 221, 46, 0.42);
+  }
+  56% {
+    box-shadow: 0 2px 8px rgba(16, 17, 20, 0.12), 0 0 0 3px rgba(254, 221, 46, 0.14);
+  }
+  100% {
+    box-shadow: 0 2px 8px rgba(16, 17, 20, 0.14), 0 0 0 0 rgba(254, 221, 46, 0);
   }
 }
 
