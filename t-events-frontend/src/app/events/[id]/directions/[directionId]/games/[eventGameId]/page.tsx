@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Container from "@/components/ui/Container";
 import Input from "@/components/ui/Input";
@@ -16,7 +16,6 @@ import type {
   CurrentQuestionDTO,
   NavigationItemDTO,
   QuizQuestionOptionDTO,
-  SessionAnswerResultDTO,
   SessionStateDTO,
   StartOrResumeSessionDTO,
 } from "@/lib/api/types";
@@ -28,6 +27,7 @@ type RuntimeState = {
   status: SessionStateDTO["status"];
   progress: SessionStateDTO["progress"];
   navigation: NavigationItemDTO[];
+  questions: CurrentQuestionDTO[];
   current_question: CurrentQuestionDTO | null;
 };
 
@@ -64,23 +64,6 @@ function getNavigationItemState(item: NavigationItemDTO) {
   return "answered";
 }
 
-function mergeAnsweredQuestionState(
-  navigation: NavigationItemDTO[],
-  result: SessionAnswerResultDTO | null
-) {
-  if (!result) return navigation;
-
-  return navigation.map((item) =>
-    item.question_id === result.question_id
-      ? {
-          ...item,
-          answered: true,
-          is_correct: result.is_correct,
-        }
-      : item
-  );
-}
-
 function markCurrentNavigationItem(navigation: NavigationItemDTO[], currentQuestionIndex: number | null) {
   if (currentQuestionIndex === null) return navigation;
 
@@ -90,70 +73,19 @@ function markCurrentNavigationItem(navigation: NavigationItemDTO[], currentQuest
   }));
 }
 
-function applyAnswerResultToQuestion(
-  question: CurrentQuestionDTO,
-  payload: SubmitAnswerPayload,
-  result: SessionAnswerResultDTO
-): CurrentQuestionDTO {
-  if ("text_answer" in payload.answer && question.engine === "question_answer") {
-    return {
-      ...question,
-      answered: true,
-      is_correct: result.is_correct,
-      text_answer: payload.answer.text_answer,
-    };
-  }
-
-  if ("option_id" in payload.answer && question.engine === "quiz") {
-    return {
-      ...question,
-      answered: true,
-      is_correct: result.is_correct,
-      selected_option_id: payload.answer.option_id,
-    };
-  }
-
-  return {
-    ...question,
-    answered: true,
-    is_correct: result.is_correct,
-  };
-}
-
-function mergeQuestionState(
-  cachedQuestion: CurrentQuestionDTO | null | undefined,
-  incomingQuestion: CurrentQuestionDTO | null
-) {
-  if (!incomingQuestion) return incomingQuestion;
-  if (!cachedQuestion || cachedQuestion.question_id !== incomingQuestion.question_id) return incomingQuestion;
-
-  if (incomingQuestion.engine === "question_answer" && cachedQuestion.engine === "question_answer") {
-    return {
-      ...incomingQuestion,
-      answered: incomingQuestion.answered || cachedQuestion.answered,
-      is_correct: incomingQuestion.is_correct ?? cachedQuestion.is_correct,
-      text_answer: incomingQuestion.text_answer ?? cachedQuestion.text_answer,
-    };
-  }
-
-  if (incomingQuestion.engine === "quiz" && cachedQuestion.engine === "quiz") {
-    return {
-      ...incomingQuestion,
-      answered: incomingQuestion.answered || cachedQuestion.answered,
-      is_correct: incomingQuestion.is_correct ?? cachedQuestion.is_correct,
-      selected_option_id: incomingQuestion.selected_option_id ?? cachedQuestion.selected_option_id,
-    };
-  }
-
-  return {
-    ...incomingQuestion,
-    answered: incomingQuestion.answered || cachedQuestion.answered,
-    is_correct: incomingQuestion.is_correct ?? cachedQuestion.is_correct,
-  };
-}
-
 function getCurrentQuestionNumber(state: RuntimeState) {
   return state.navigation.find((item) => item.is_current)?.question_index ?? state.progress.current_question_index;
+}
+
+function getQuestionByIndex(questions: CurrentQuestionDTO[], navigation: NavigationItemDTO[], questionIndex: number | null) {
+  if (questionIndex === null) return null;
+
+  const navigationItem = navigation.find((item) => item.question_index === questionIndex);
+  if (navigationItem) {
+    return questions.find((question) => question.question_id === navigationItem.question_id) ?? null;
+  }
+
+  return questions[questionIndex - 1] ?? null;
 }
 
 function toRuntimeState(source: StartOrResumeSessionDTO | SessionStateDTO): RuntimeState {
@@ -162,6 +94,7 @@ function toRuntimeState(source: StartOrResumeSessionDTO | SessionStateDTO): Runt
     status: source.status,
     progress: source.progress,
     navigation: source.navigation ?? [],
+    questions: source.questions ?? [],
     current_question: source.current_question,
   };
 }
@@ -215,38 +148,23 @@ function QuestionNavigation({ disabled, items, onSelect, variant = "grid" }: Que
 
 export default function GameSessionPage() {
   const params = useParams();
-  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
   const eventId = Number(params.id);
   const directionId = Number(params.directionId);
   const eventGameId = Number(params.eventGameId);
-  const sessionIdFromUrl = Number(searchParams.get("sessionId"));
-  const reviewSessionId = Number.isFinite(sessionIdFromUrl) ? sessionIdFromUrl : null;
   const isAuthorized = useIsAuthorized();
 
   const [answerText, setAnswerText] = useState("");
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
   const [navigationError, setNavigationError] = useState<string | null>(null);
   const [optimisticQuestionIndex, setOptimisticQuestionIndex] = useState<number | null>(null);
-  const [questionCache, setQuestionCache] = useState<Record<number, CurrentQuestionDTO>>({});
   const quizOptionRefs = useRef<Record<number, HTMLButtonElement | null>>({});
   const hasStartedRef = useRef(false);
   const latestQuestionRequestRef = useRef<number | null>(null);
 
   const startSessionMutation = useMutation({
     mutationFn: () => eventsApi.startOrResumeSession(eventId, directionId, eventGameId),
-    onSuccess: (response) => {
-      const runtimeState = toRuntimeState(response.data);
-      const questionIndex = getCurrentQuestionNumber(runtimeState);
-
-      if (!runtimeState.current_question || questionIndex === null) return;
-
-      setQuestionCache((currentCache) => ({
-        ...currentCache,
-        [questionIndex]: runtimeState.current_question as CurrentQuestionDTO,
-      }));
-    },
   });
 
   useEffect(() => {
@@ -255,14 +173,13 @@ export default function GameSessionPage() {
 
   useEffect(() => {
     if (!isAuthorized) return;
-    if (reviewSessionId !== null) return;
     if (!Number.isFinite(eventId) || !Number.isFinite(directionId) || !Number.isFinite(eventGameId)) return;
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
     startSessionMutation.mutate();
-  }, [directionId, eventGameId, eventId, isAuthorized, reviewSessionId, startSessionMutation]);
+  }, [directionId, eventGameId, eventId, isAuthorized, startSessionMutation]);
 
-  const activeSessionId = reviewSessionId ?? startSessionMutation.data?.data.session_id ?? null;
+  const activeSessionId = startSessionMutation.data?.data.session_id ?? null;
 
   const sessionStateQueryKey = ["game-session-state", eventId, directionId, eventGameId, activeSessionId] as const;
 
@@ -281,7 +198,6 @@ export default function GameSessionPage() {
     mutationFn: (submitRequest: {
       sessionId: number;
       payload: SubmitAnswerPayload;
-      question: CurrentQuestionDTO;
       questionIndex: number;
     }) => {
       return eventsApi.submitAnswer(eventId, directionId, eventGameId, submitRequest.sessionId, submitRequest.payload);
@@ -289,20 +205,21 @@ export default function GameSessionPage() {
     onSuccess: (response, submitRequest) => {
       setAnswerText("");
       setSelectedOptionId(null);
-      const answeredQuestion = applyAnswerResultToQuestion(
-        submitRequest.question,
-        submitRequest.payload,
-        response.data.answer_result
-      );
-
       setOptimisticQuestionIndex(submitRequest.questionIndex);
-      setQuestionCache((currentCache) => ({
-        ...currentCache,
-        [submitRequest.questionIndex]: answeredQuestion,
-      }));
+      queryClient.setQueryData(sessionStateQueryKey, {
+        data: {
+          session_id: response.data.session_id,
+          status: response.data.status,
+          progress: response.data.progress,
+          navigation: response.data.navigation,
+          questions: response.data.questions,
+          current_question:
+            getQuestionByIndex(response.data.questions, response.data.navigation, submitRequest.questionIndex) ??
+            response.data.next_question,
+        },
+      });
 
       queryClient.invalidateQueries({ queryKey: ["direction-games", eventId, directionId] });
-      queryClient.invalidateQueries({ queryKey: sessionStateQueryKey });
     },
   });
 
@@ -317,25 +234,11 @@ export default function GameSessionPage() {
     onSuccess: (response, questionIndex) => {
       if (latestQuestionRequestRef.current !== questionIndex) return;
 
-      const cachedQuestion = questionCache[questionIndex] ?? null;
-      const mergedQuestion = mergeQuestionState(cachedQuestion, response.data.current_question);
-
-      if (mergedQuestion) {
-        setQuestionCache((currentCache) => ({
-          ...currentCache,
-          [questionIndex]: mergedQuestion,
-        }));
-      }
-
-      queryClient.setQueryData(sessionStateQueryKey, {
-        ...response,
-        data: {
-          ...response.data,
-          current_question: mergedQuestion,
-        },
-      });
-      setAnswerText(mergedQuestion?.engine === "question_answer" ? mergedQuestion.text_answer ?? "" : "");
-      setSelectedOptionId(mergedQuestion?.engine === "quiz" ? mergedQuestion.selected_option_id ?? null : null);
+      queryClient.setQueryData(sessionStateQueryKey, response);
+      setAnswerText(response.data.current_question?.engine === "question_answer" ? response.data.current_question.text_answer ?? "" : "");
+      setSelectedOptionId(
+        response.data.current_question?.engine === "quiz" ? response.data.current_question.selected_option_id ?? null : null
+      );
       setOptimisticQuestionIndex(null);
     },
     onError: (error, questionIndex) => {
@@ -361,41 +264,43 @@ export default function GameSessionPage() {
     });
   }
   if (submitAnswerMutation.data?.data) {
-    const fallbackNavigation = sessionStateQuery.data?.data.navigation ?? startSessionMutation.data?.data.navigation ?? [];
-    const submittedQuestion = submitAnswerMutation.variables?.question ?? null;
     const submittedQuestionIndex = submitAnswerMutation.variables?.questionIndex ?? null;
+    const currentQuestionFromResponse =
+      getQuestionByIndex(
+        submitAnswerMutation.data.data.questions,
+        submitAnswerMutation.data.data.navigation,
+        submittedQuestionIndex
+      ) ?? submitAnswerMutation.data.data.next_question;
+
     stateCandidates.push({
       timestamp: submitAnswerMutation.submittedAt,
       state: {
         session_id: submitAnswerMutation.data.data.session_id,
         status: submitAnswerMutation.data.data.status,
         progress: submitAnswerMutation.data.data.progress,
-        navigation: markCurrentNavigationItem(
-          mergeAnsweredQuestionState(fallbackNavigation, submitAnswerMutation.data.data.answer_result),
-          submittedQuestionIndex
-        ),
-        current_question: submittedQuestion
-          ? applyAnswerResultToQuestion(
-              submittedQuestion,
-              submitAnswerMutation.variables.payload,
-              submitAnswerMutation.data.data.answer_result
-            )
-          : submitAnswerMutation.data.data.next_question,
+        navigation: markCurrentNavigationItem(submitAnswerMutation.data.data.navigation, submittedQuestionIndex),
+        questions: submitAnswerMutation.data.data.questions,
+        current_question: currentQuestionFromResponse,
       },
     });
   }
   const state = stateCandidates.sort((left, right) => right.timestamp - left.timestamp)[0]?.state ?? null;
 
-  const serverCurrentQuestion = state?.current_question ?? null;
   const serverCurrentQuestionNumber = state ? getCurrentQuestionNumber(state) : null;
-  const cachedServerQuestion =
-    serverCurrentQuestionNumber !== null ? questionCache[serverCurrentQuestionNumber] ?? null : null;
-  const resolvedServerQuestion = mergeQuestionState(cachedServerQuestion, serverCurrentQuestion);
-  const optimisticQuestion = optimisticQuestionIndex !== null ? questionCache[optimisticQuestionIndex] ?? null : null;
+  const serverCurrentQuestion =
+    state?.current_question ?? (state ? getQuestionByIndex(state.questions, state.navigation, serverCurrentQuestionNumber) : null);
+  const optimisticQuestion =
+    state && optimisticQuestionIndex !== null
+      ? getQuestionByIndex(state.questions, state.navigation, optimisticQuestionIndex)
+      : null;
   const isChangingToUncachedQuestion = optimisticQuestionIndex !== null && !optimisticQuestion;
-  const currentQuestion = isChangingToUncachedQuestion ? null : optimisticQuestion ?? resolvedServerQuestion;
+  const currentQuestion = isChangingToUncachedQuestion ? null : optimisticQuestion ?? serverCurrentQuestion;
   const currentQuestionNumber = optimisticQuestionIndex ?? serverCurrentQuestionNumber;
   const navigationItems = state ? markCurrentNavigationItem(state.navigation, currentQuestionNumber) : [];
+  const nextNavigationItem =
+    currentQuestionNumber === null
+      ? null
+      : navigationItems.find((item) => item.question_index > currentQuestionNumber) ?? null;
   const isAnsweredQuestion = currentQuestion?.answered ?? false;
   const isCorrectAnsweredQuestion = isAnsweredQuestion && currentQuestion?.is_correct === true;
   const isWrongAnsweredQuestion = isAnsweredQuestion && currentQuestion?.is_correct === false;
@@ -424,7 +329,6 @@ export default function GameSessionPage() {
       submitAnswerMutation.mutate({
         sessionId: state.session_id,
         payload: { answer: { text_answer: answerText.trim() } },
-        question: currentQuestion,
         questionIndex: currentQuestionNumber,
       });
       return;
@@ -434,7 +338,6 @@ export default function GameSessionPage() {
     submitAnswerMutation.mutate({
       sessionId: state.session_id,
       payload: { answer: { option_id: displayedSelectedOptionId } },
-      question: currentQuestion,
       questionIndex: currentQuestionNumber,
     });
   };
@@ -442,12 +345,12 @@ export default function GameSessionPage() {
   const handleQuestionSelect = (item: NavigationItemDTO) => {
     if (!state || item.question_index === currentQuestionNumber || !canViewSession(state.status)) return;
 
-    const cachedQuestion = questionCache[item.question_index] ?? null;
+    const selectedQuestion = getQuestionByIndex(state.questions, state.navigation, item.question_index);
     latestQuestionRequestRef.current = item.question_index;
     setNavigationError(null);
     setOptimisticQuestionIndex(item.question_index);
-    setAnswerText(cachedQuestion?.engine === "question_answer" ? cachedQuestion.text_answer ?? "" : "");
-    setSelectedOptionId(cachedQuestion?.engine === "quiz" ? cachedQuestion.selected_option_id ?? null : null);
+    setAnswerText(selectedQuestion?.engine === "question_answer" ? selectedQuestion.text_answer ?? "" : "");
+    setSelectedOptionId(selectedQuestion?.engine === "quiz" ? selectedQuestion.selected_option_id ?? null : null);
     selectQuestionMutation.mutate(item.question_index);
   };
 
@@ -609,19 +512,11 @@ export default function GameSessionPage() {
 
                       <div className="mt-8 flex flex-col gap-3 sm:mt-9 sm:flex-row sm:items-center">
                         <Button
-                          className={clsx(
-                            "min-h-14 w-full px-7 text-[16px] sm:w-auto",
-                            isCorrectAnsweredQuestion && "bg-[#dff4e8] text-[#237a3b] hover:bg-[#dff4e8]",
-                            isWrongAnsweredQuestion && "bg-[#fde7e7] text-red-700 hover:bg-[#fde7e7]"
-                          )}
+                          className="min-h-14 w-full px-7 text-[16px] sm:w-auto"
                           disabled={isAnsweredQuestion || !canSubmit || submitAnswerMutation.isPending}
                           onClick={handleSubmit}
                         >
-                          {isCorrectAnsweredQuestion ? (
-                            "Ответ верный"
-                          ) : isWrongAnsweredQuestion ? (
-                            "Ответ неверный"
-                          ) : isAnsweredQuestion ? (
+                          {isAnsweredQuestion ? (
                             "Ответ принят"
                           ) : isReviewMode ? (
                             "Игра завершена"
@@ -634,6 +529,17 @@ export default function GameSessionPage() {
                             "Отправить ответ"
                           )}
                         </Button>
+
+                        {nextNavigationItem && (
+                          <Button
+                            variant="secondary"
+                            className="min-h-14 w-full px-7 text-[16px] sm:w-auto"
+                            disabled={!canNavigateQuestions || selectQuestionMutation.isPending}
+                            onClick={() => handleQuestionSelect(nextNavigationItem)}
+                          >
+                            Следующий вопрос
+                          </Button>
+                        )}
 
                         {submitAnswerMutation.error && (
                           <p className="text-[14px] leading-5 text-red-600">

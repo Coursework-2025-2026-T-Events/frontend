@@ -52,10 +52,6 @@ function getGameProgress(game: DirectionGamesItemDTO) {
   return Math.round((answered / total) * 100);
 }
 
-function getGameSessionId(game: DirectionGamesItemDTO) {
-  return game.session_id ?? game.active_session_id ?? game.last_session_id ?? null;
-}
-
 function getDirectionProgressPct(summary: DirectionProgressSummaryDTO) {
   const maxScore = Math.max(summary.direction_max_score, 1);
 
@@ -197,10 +193,9 @@ function MobileDirectionProgressBar({
         {rewardUnlocked && (
           <Button
             href={routes.eventDirectionReward(eventId, directionId)}
-            className="mt-3 min-h-11 w-full gap-2 rounded-[var(--radius-md)] px-5 text-[15px] font-medium shadow-[0_3px_0_rgba(16,17,20,0.12)]"
+            className="relative mt-3 min-h-11 w-full overflow-hidden rounded-[14px] bg-[var(--color-brand-yellow)] px-5 text-[15px] font-medium shadow-[0_4px_0_rgba(16,17,20,0.12)] before:absolute before:left-[-10px] before:top-1/2 before:h-5 before:w-5 before:-translate-y-1/2 before:rounded-full before:bg-white/95 after:absolute after:right-[-10px] after:top-1/2 after:h-5 after:w-5 after:-translate-y-1/2 after:rounded-full after:bg-white/95 hover:bg-[var(--color-brand-yellow-hover)]"
           >
             Получить приз
-            <ArrowRight className="h-4 w-4" aria-hidden />
           </Button>
         )}
       </div>
@@ -338,14 +333,6 @@ export default function GamesPage() {
   });
 
   const handleOpenGame = (game: DirectionGamesItemDTO) => {
-    const sessionId = getGameSessionId(game);
-    const gameHref = routes.eventGame(eventId, directionId, game.event_game_id);
-
-    if (game.status === "completed" && sessionId !== null) {
-      router.push(`${gameHref}?sessionId=${sessionId}`);
-      return;
-    }
-
     startSessionMutation.mutate(game.event_game_id);
   };
 
@@ -400,7 +387,7 @@ export default function GamesPage() {
               {summary && <DirectionProgressSummary className="hidden sm:block" summary={summary} />}
 
               {hasUnlockedReward && (
-                <section className="rounded-[var(--radius-lg)] bg-white p-4 shadow-[var(--shadow-card)] sm:p-6">
+                <section className="hidden rounded-[var(--radius-lg)] bg-white p-4 shadow-[var(--shadow-card)] sm:block sm:p-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h2 className="text-[22px] font-medium leading-7 text-[var(--color-brand-ink)]">

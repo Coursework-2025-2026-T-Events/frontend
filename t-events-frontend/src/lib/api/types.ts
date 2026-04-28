@@ -70,9 +70,6 @@ export type StepBasedProgressDTO = {
 export type DirectionGamesItemDTO = {
   event_game_id: number;
   game_template_id: number;
-  session_id?: number | null;
-  active_session_id?: number | null;
-  last_session_id?: number | null;
   title: string;
   description: string;
   engine: GameEngine;
@@ -140,6 +137,7 @@ export type StartOrResumeSessionDTO = {
   };
   progress: StepBasedProgressDTO;
   navigation: NavigationItemDTO[];
+  questions: CurrentQuestionDTO[];
   current_question: CurrentQuestionDTO | null;
 };
 
@@ -148,6 +146,7 @@ export type SessionStateDTO = {
   status: SessionStatus;
   progress: StepBasedProgressDTO;
   navigation: NavigationItemDTO[];
+  questions: CurrentQuestionDTO[];
   current_question: CurrentQuestionDTO | null;
 };
 
@@ -164,6 +163,8 @@ export type SubmitAnswerDTO = {
   progress: StepBasedProgressDTO;
   direction_summary: DirectionProgressSummaryDTO;
   next_question: CurrentQuestionDTO | null;
+  navigation: NavigationItemDTO[];
+  questions: CurrentQuestionDTO[];
 };
 
 // ─── Sprint 3 ────────────────────────────────────────────────────────────────
