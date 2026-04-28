@@ -52,7 +52,14 @@ export async function GET(request: NextRequest) {
     const responseText = await backendResponse.text();
 
     if (!backendResponse.ok) {
-      const response = redirectToClient(request, { error: "vk_callback_failed" });
+      let errorCode = "vk_callback_failed";
+      try {
+        const errorData = JSON.parse(responseText) as { error?: { code?: unknown } };
+        if (typeof errorData.error?.code === "string") errorCode = errorData.error.code;
+      } catch {
+        // Keep the generic OAuth error when backend did not return JSON.
+      }
+      const response = redirectToClient(request, { error: errorCode });
       if (setCookie) response.headers.append("set-cookie", setCookie);
       return response;
     }

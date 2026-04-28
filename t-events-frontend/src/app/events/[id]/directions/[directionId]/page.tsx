@@ -1,20 +1,34 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
-import Container from "@/components/ui/Container";
-import { eventsApi } from "@/features/events/api";
-import Card from "@/components/ui/Card";
-import Typography from "@/components/ui/Typography";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
+import Container from "@/components/ui/Container";
 import ErrorMessage from "@/components/ui/ErrorMessage";
-import LiveStatus from "@/components/ui/LiveStatus";
+import { DirectionVisual } from "@/components/events/directionVisuals";
+import { getDirectionTheme } from "@/components/events/directionTheme";
 import RequireAuth from "@/features/auth/RequireAuth";
-import { useParticipationStore } from "@/features/participation/store";
-import { useRouter } from "next/navigation";
 import { useIsAuthorized } from "@/features/auth/useIsAuthorized";
-import { getErrorMessage } from "@/lib/getErrorMessage";
+import { eventsApi } from "@/features/events/api";
+import { useParticipationStore } from "@/features/participation/store";
+import { getErrorPresentation } from "@/lib/getErrorMessage";
 import { routes } from "@/lib/routes";
+
+function DirectionPageSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-card)]" role="status" aria-label="Загрузка направления">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-stretch">
+        <div className="p-6 sm:p-8 lg:p-10">
+          <div className="h-7 w-32 animate-pulse rounded-full bg-[var(--color-brand-line)]" />
+          <div className="mt-6 h-12 w-3/4 animate-pulse rounded-[var(--radius-md)] bg-[var(--color-brand-line)]" />
+          <div className="mt-8 h-12 w-56 animate-pulse rounded-[var(--radius-md)] bg-[var(--color-brand-line)]" />
+        </div>
+        <div className="min-h-[260px] animate-pulse bg-[var(--color-brand-panel)]" />
+      </div>
+    </div>
+  );
+}
 
 export default function DirectionDetailsPage() {
   const params = useParams();
@@ -31,61 +45,85 @@ export default function DirectionDetailsPage() {
     enabled: Number.isFinite(eventId) && Number.isFinite(directionId) && isAuthorized,
   });
 
+  const direction = data?.data;
+  const directionTheme = direction ? getDirectionTheme(direction.name) : null;
   const isSelected = selectedEventId === eventId && directionId === selectedDirectionId;
+  const directionError = error ? getErrorPresentation(error, "Не удалось загрузить направление") : null;
+
+  const openGames = () => {
+    if (!direction) {
+      return;
+    }
+
+    if (!isSelected) {
+      selectDirection(eventId, directionId, { directionName: direction.name });
+    }
+
+    router.push(routes.eventDirectionGames(eventId, directionId));
+  };
 
   return (
     <RequireAuth>
-      <Container>
-        <div className="mt-8">
-          {isLoading && (
-            <LiveStatus className="text-sm text-neutral-600" busy>
-              Загрузка направления...
-            </LiveStatus>
-          )}
-          {error && (
-            <ErrorMessage
-              message={getErrorMessage(error, "Не удалось загрузить направление")}
-              actionLabel={isFetching ? "Повторяем..." : "Повторить"}
-              onAction={() => refetch()}
-            />
-          )}
+      <div className="min-h-[calc(100vh-4rem)] bg-[var(--color-brand-mist)] pb-16">
+        <Container>
+          <div className="py-8 sm:py-10 lg:py-12">
+            <Button
+              variant="ghost"
+              href={routes.eventDirections(eventId)}
+              className="-ml-3 mb-6 min-h-10 gap-2 px-3 text-[15px] font-medium text-[var(--color-brand-muted)] hover:bg-white/70"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden />
+              К направлениям
+            </Button>
 
-          {data && (
-            <Card>
-              <Typography as="h1" size="xl" weight="bold">
-                {data.data.name}
-              </Typography>
-              <Typography className="mt-2 text-neutral-600" size="sm">
-                {isSelected
-                  ? "Направление выбрано. Можно перейти к списку игр."
-                  : "Это направление не выбрано. Вы можете вернуться и выбрать его."}
-              </Typography>
+            {isLoading && <DirectionPageSkeleton />}
 
-              {!isSelected && (
-                <Button
-                  className="mt-4"
-                  onClick={() => {
-                    selectDirection(eventId, directionId, { directionName: data.data.name });
-                    router.push(routes.eventDirectionGames(eventId, directionId));
-                  }}
-                >
-                  Выбрать и открыть игры
-                </Button>
-              )}
+            {error && (
+              <ErrorMessage
+                title={directionError?.title}
+                message={directionError?.message ?? "Не удалось загрузить направление"}
+                actionLabel={directionError?.retryable ? (isFetching ? "Повторяем..." : "Повторить") : undefined}
+                onAction={directionError?.retryable ? () => refetch() : undefined}
+              />
+            )}
 
-              {isSelected && (
-                <Button className="mt-4" onClick={() => router.push(routes.eventDirectionGames(eventId, directionId))}>
-                  Перейти к играм
-                </Button>
-              )}
+            {direction && directionTheme && (
+              <section className="overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-card)]">
+                <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-stretch">
+                  <div className="p-6 sm:p-8 lg:p-10">
+                    <span className="inline-flex rounded-full bg-[var(--color-brand-yellow)] px-3 py-1 text-[13px] font-medium leading-[18px] text-[var(--color-brand-ink)]">
+                      Направление
+                    </span>
+                    <h1 className="mt-5 max-w-3xl text-balance text-[36px] font-bold leading-10 text-[var(--color-brand-ink)] sm:text-[44px] sm:leading-[48px]">
+                      {direction.name}
+                    </h1>
 
-              <Button className="mt-3" variant="secondary" onClick={() => router.push(routes.eventDirections(eventId))}>
-                Назад к выбору направления
-              </Button>
-            </Card>
-          )}
-        </div>
-      </Container>
+                    <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                      <Button onClick={openGames} className="min-h-12 px-6 text-[15px] font-normal">
+                        {isSelected ? "Перейти к играм" : "Выбрать и открыть игры"}
+                        <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+                      </Button>
+                      <Button
+                        href={routes.eventDirections(eventId)}
+                        variant="secondary"
+                        className="min-h-12 px-6 text-[15px] font-normal"
+                      >
+                        Другие направления
+                      </Button>
+                    </div>
+                  </div>
+
+                  <DirectionVisual
+                    className="h-full min-h-[240px] rounded-none lg:min-h-[300px]"
+                    theme={directionTheme}
+                    selected={isSelected}
+                  />
+                </div>
+              </section>
+            )}
+          </div>
+        </Container>
+      </div>
     </RequireAuth>
   );
 }

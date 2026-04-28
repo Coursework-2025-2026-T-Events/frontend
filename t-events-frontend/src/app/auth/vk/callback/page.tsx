@@ -17,6 +17,12 @@ type VkAuthPayload = {
   user: UserDTO;
 };
 
+function getVkCallbackErrorMessage(errorCode: string): string {
+  if (errorCode === "service_unavailable") return "Вход через VK временно не настроен.";
+  if (errorCode === "bad_gateway") return "Внешний сервис авторизации временно недоступен.";
+  return "Вход через VK отменен или завершился ошибкой.";
+}
+
 function decodeHashPayload(payload: string): VkAuthPayload | null {
   try {
     const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
@@ -66,7 +72,7 @@ function VkCallbackContent() {
       }
 
       if (hashError) {
-        setError("Вход через VK отменен или завершился ошибкой.");
+        setError(getVkCallbackErrorMessage(hashError));
         return;
       }
 
@@ -76,7 +82,7 @@ function VkCallbackContent() {
       const vkError = searchParams.get("error");
 
       if (vkError) {
-        setError("Вход через VK отменен или завершился ошибкой.");
+        setError(getVkCallbackErrorMessage(vkError));
         return;
       }
 

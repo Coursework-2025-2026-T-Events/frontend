@@ -44,7 +44,7 @@ const API_ERROR_PRESENTATIONS: Record<string, ErrorPresentation> = {
   },
   bad_gateway: {
     title: "Внешний сервис недоступен",
-    message: "Не удалось получить ответ от внешнего сервиса. Попробуйте позже.",
+    message: "Внешний сервис авторизации временно недоступен. Попробуйте позже.",
     retryable: true,
   },
   internal_error: {
@@ -54,7 +54,12 @@ const API_ERROR_PRESENTATIONS: Record<string, ErrorPresentation> = {
   },
   service_unavailable: {
     title: "Сервис недоступен",
-    message: "Сервис временно недоступен. Попробуйте позже.",
+    message: "Вход через VK временно не настроен.",
+    retryable: true,
+  },
+  rate_limited: {
+    title: "Слишком много попыток",
+    message: "Слишком много попыток, попробуйте позже",
     retryable: true,
   },
 
@@ -86,6 +91,11 @@ const API_ERROR_PRESENTATIONS: Record<string, ErrorPresentation> = {
   question_already_answered: {
     title: "Ответ уже принят",
     message: "На этот вопрос уже был дан ответ.",
+    retryable: false,
+  },
+  question_index_out_of_range: {
+    title: "Некорректный номер вопроса",
+    message: "Некорректный номер вопроса.",
     retryable: false,
   },
   invalid_config: { title: "Проверьте конфигурацию", message: "Некорректная конфигурация игры.", retryable: false },

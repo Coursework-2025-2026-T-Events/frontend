@@ -1,8 +1,10 @@
+import clsx from "clsx";
 import { ShieldCheck } from "lucide-react";
 import type { ComponentType } from "react";
 import type { DirectionTheme, DirectionVisualType } from "./directionTheme";
 
 type DirectionVisualProps = {
+  className?: string;
   selected: boolean;
   theme: DirectionTheme;
 };
@@ -208,12 +210,17 @@ const visualScenes: Record<DirectionVisualType, ComponentType<VisualSceneProps>>
   security: SecurityScene,
 };
 
-export function DirectionVisual({ theme, selected }: DirectionVisualProps) {
+export function DirectionVisual({ className, theme, selected }: DirectionVisualProps) {
   const Icon = theme.Icon;
   const Scene = visualScenes[theme.visual];
 
   return (
-    <div className="relative h-40 overflow-hidden rounded-t-[var(--radius-lg)] bg-[var(--color-brand-panel)]">
+    <div
+      className={clsx(
+        "relative h-40 overflow-hidden rounded-t-[var(--radius-lg)] bg-[var(--color-brand-panel)]",
+        className
+      )}
+    >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(254,221,46,0.5),transparent_30%),radial-gradient(circle_at_86%_18%,rgba(18,109,247,0.14),transparent_25%),linear-gradient(135deg,#ffffff_0%,#f6f7f8_100%)]" />
       <div className="absolute left-5 top-5 z-10 flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-brand-ink)] text-white shadow-[var(--shadow-card)]">
         <Icon className="h-6 w-6" aria-hidden />

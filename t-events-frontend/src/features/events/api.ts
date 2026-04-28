@@ -52,6 +52,17 @@ export const eventsApi = {
     api.get<SessionStateResponse>(
       `/events/${eventId}/directions/${directionId}/games/${eventGameId}/sessions/${sessionId}`
     ),
+  setCurrentQuestion: (
+    eventId: number,
+    directionId: number,
+    eventGameId: number,
+    sessionId: number,
+    questionIndex: number
+  ) =>
+    api.patch<SessionStateResponse>(
+      `/events/${eventId}/directions/${directionId}/games/${eventGameId}/sessions/${sessionId}/current-question`,
+      { question_index: questionIndex }
+    ),
   submitAnswer: (
     eventId: number,
     directionId: number,

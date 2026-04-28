@@ -39,9 +39,9 @@ export default function DirectionsPage() {
               <Button
                 variant="ghost"
                 href={routes.events}
-                className="-ml-3 mb-6 min-h-10 px-3 text-[15px] font-normal text-[var(--color-brand-graphite)]"
+                className="-ml-3 mb-6 min-h-10 gap-2 px-3 text-[15px] font-medium text-[var(--color-brand-muted)] hover:bg-white/70"
               >
-                <ArrowLeft className="mr-2 h-4 w-4" aria-hidden />
+                <ArrowLeft className="h-4 w-4" aria-hidden />
                 К мероприятиям
               </Button>
 

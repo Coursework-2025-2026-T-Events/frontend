@@ -20,8 +20,17 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 
 const fullNamePattern = /^[\p{L}'-]+ [\p{L}'-]+ ([\p{L}'-]+|-)$/u;
+const russianPhonePattern = /^\+7\d{10}$/;
 const securityAwareRegistrationError =
   "Не удалось завершить регистрацию. Проверьте данные или попробуйте войти.";
+
+function normalizeRussianPhone(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("8")) return `+7${digits.slice(1)}`;
+  if (digits.length === 11 && digits.startsWith("7")) return `+${digits}`;
+  if (digits.length === 10) return `+7${digits}`;
+  return value.trim();
+}
 
 const schema = z.object({
   email: z.string().email("Некорректный адрес электронной почты"),
@@ -30,7 +39,11 @@ const schema = z.object({
     .string()
     .trim()
     .regex(fullNamePattern, "Введите фамилию, имя и отчество. Если отчества нет, укажите '-' третьей частью."),
-  phone: z.string().min(1, "Введите телефон"),
+  phone: z
+    .string()
+    .min(1, "Введите телефон")
+    .transform(normalizeRussianPhone)
+    .refine((value) => russianPhonePattern.test(value), "Введите российский номер телефона, например +79991234567"),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -157,7 +170,13 @@ function RegisterContent() {
                   />
                 }
               />
-              <AuthField label="ФИО" autoComplete="name" {...register("full_name")} error={errors.full_name?.message} />
+              <AuthField
+                label="ФИО"
+                autoComplete="name"
+                placeholder="Иванов Иван Иванович или Иванов Иван -"
+                {...register("full_name")}
+                error={errors.full_name?.message}
+              />
               <AuthField label="Телефон" type="tel" autoComplete="tel" {...register("phone")} error={errors.phone?.message} />
 
               {serverError && (
@@ -186,7 +205,7 @@ function RegisterContent() {
               className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-brand-panel)] px-6 py-3 text-[15px] font-bold leading-6 text-[var(--color-brand-ink)] outline-none transition hover:bg-[#eef0f3] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]"
               onClick={() => sessionStorage.setItem(OAUTH_NEXT_PATH_KEY, nextPath)}
             >
-              Продолжить с <VkIcon />
+              Войти через <VkIcon />
             </a>
 
             <p className="mt-5 text-center text-[15px] leading-6 text-[var(--color-brand-graphite)]">

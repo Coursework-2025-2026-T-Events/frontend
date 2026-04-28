@@ -70,6 +70,9 @@ export type StepBasedProgressDTO = {
 export type DirectionGamesItemDTO = {
   event_game_id: number;
   game_template_id: number;
+  session_id?: number | null;
+  active_session_id?: number | null;
+  last_session_id?: number | null;
   title: string;
   description: string;
   engine: GameEngine;
@@ -94,6 +97,9 @@ export type QuestionAnswerQuestionDTO = {
   prompt: string;
   difficulty: Difficulty;
   score: number;
+  answered: boolean;
+  is_correct?: boolean;
+  text_answer?: string;
 };
 
 export type QuizQuestionOptionDTO = {
@@ -108,9 +114,20 @@ export type QuizQuestionDTO = {
   difficulty: Difficulty;
   score: number;
   options: QuizQuestionOptionDTO[];
+  answered: boolean;
+  is_correct?: boolean;
+  selected_option_id?: number;
 };
 
 export type CurrentQuestionDTO = QuestionAnswerQuestionDTO | QuizQuestionDTO;
+
+export type NavigationItemDTO = {
+  question_index: number;
+  question_id: number;
+  answered: boolean;
+  is_correct?: boolean;
+  is_current: boolean;
+};
 
 export type StartOrResumeSessionDTO = {
   session_id: number;
@@ -122,6 +139,7 @@ export type StartOrResumeSessionDTO = {
     engine: GameEngine;
   };
   progress: StepBasedProgressDTO;
+  navigation: NavigationItemDTO[];
   current_question: CurrentQuestionDTO | null;
 };
 
@@ -129,6 +147,7 @@ export type SessionStateDTO = {
   session_id: number;
   status: SessionStatus;
   progress: StepBasedProgressDTO;
+  navigation: NavigationItemDTO[];
   current_question: CurrentQuestionDTO | null;
 };
 

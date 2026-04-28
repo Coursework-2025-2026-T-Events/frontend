@@ -185,7 +185,7 @@ function LoginContent() {
               className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-brand-panel)] px-6 py-3 text-[15px] font-bold leading-6 text-[var(--color-brand-ink)] outline-none transition hover:bg-[#eef0f3] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]"
               onClick={() => sessionStorage.setItem(OAUTH_NEXT_PATH_KEY, nextPath)}
             >
-              Войти с <VkIcon />
+              Войти через <VkIcon />
             </a>
 
             <p className="mt-5 text-center text-[15px] leading-6 text-[var(--color-brand-graphite)]">
