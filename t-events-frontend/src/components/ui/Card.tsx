@@ -6,7 +6,7 @@ export default function Card({ className, ...props }: Props) {
   return (
     <div
       className={clsx(
-        "rounded-[var(--radius-lg)] border border-neutral-200 bg-white p-4 shadow-[var(--shadow-card)]",
+        "rounded-[var(--radius-lg)] border border-neutral-200 bg-white p-4 shadow-[var(--shadow-card)] sm:p-5",
         className
       )}
       {...props}

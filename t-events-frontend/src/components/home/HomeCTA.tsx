@@ -9,13 +9,14 @@ export default function HomeCTA() {
     const showRegistration = !isBootstrapping && !user;
     const showActionButtons = !isBootstrapping;
 
-    const title = user ? "Продолжайте с текущего шага" : "Готовы начать первый проход?";
+    const title = user ? "Продолжайте путь без потери прогресса" : "Готовы запустить первый сценарий?";
     const body = user
-        ? "Профиль загружен: переходите в каталог и завершайте начатые активности."
-        : "Создайте аккаунт, выберите мероприятие и пройдите первый сценарий без ручной настройки.";
+        ? "Откройте каталог, перейдите в активное мероприятие и завершите текущие шаги в том же темпе."
+        : "Создайте аккаунт и начните знакомство с сервисом: это основной маршрут для быстрого и предсказуемого старта.";
 
     return (
-        <div className="rounded-2xl border border-neutral-200 bg-white px-6 py-8 sm:px-8 sm:py-10">
+        <div className="relative overflow-hidden rounded-[28px] border border-neutral-200 bg-[linear-gradient(160deg,#ffffff_0%,#fff2b0_120%)] px-6 py-8 sm:px-8 sm:py-10">
+            <div className="pointer-events-none absolute -left-8 -top-10 h-32 w-32 rounded-full bg-white/60 blur-2xl" aria-hidden />
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
                 <div className="max-w-xl">
                     <Typography
@@ -23,12 +24,12 @@ export default function HomeCTA() {
                         as="h2"
                         size="xl"
                         weight="bold"
-                        className="text-balance text-2xl tracking-tight text-neutral-900 sm:text-3xl"
+                        className="text-balance text-2xl tracking-tight text-[var(--color-brand-ink)] sm:text-3xl"
                     >
-                        {isBootstrapping ? "Почти готово…" : title}
+                        {title}
                     </Typography>
                     <Typography as="p" className="mt-3 text-pretty text-base leading-relaxed text-neutral-600 sm:text-lg">
-                        {isBootstrapping ? "Загружаем ваш профиль." : body}
+                        {body}
                     </Typography>
                     <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-neutral-600">
                         <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1">Шаги занимают несколько минут</span>
@@ -39,28 +40,23 @@ export default function HomeCTA() {
                 {showActionButtons ? (
                     <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
                         <Button
-                            href="/events"
+                            href={user ? "/events" : "/auth/register"}
                             className="min-h-[48px] px-8 py-3.5 text-base font-semibold"
                         >
-                            {user ? "Перейти к мероприятиям" : "Открыть каталог"}
+                            {user ? "Открыть мероприятия" : "Начать знакомство"}
                         </Button>
                         {showRegistration ? (
                             <Button
-                                href="/auth/register"
+                                href="/events"
                                 variant="secondary"
-                                className="min-h-[48px] border-neutral-300 bg-white px-8 py-3.5 text-base font-semibold text-neutral-900 hover:bg-neutral-50"
+                                className="min-h-[48px] px-8 py-3.5 text-base font-semibold text-neutral-900"
                             >
-                                Регистрация
+                                Каталог мероприятий
                             </Button>
                         ) : null}
                     </div>
                 ) : (
-                    <div
-                        className="inline-flex min-h-[48px] items-center justify-center rounded-[var(--radius-md)] border border-neutral-200 bg-white px-8 py-3.5 text-base font-medium text-neutral-600"
-                        aria-live="polite"
-                    >
-                        Загружаем профиль...
-                    </div>
+                    <p className="text-sm font-medium text-neutral-600" aria-live="polite">Определяем ваш статус пользователя...</p>
                 )}
             </div>
         </div>

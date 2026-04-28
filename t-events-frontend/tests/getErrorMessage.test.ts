@@ -1,14 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getErrorMessage } from "../src/lib/getErrorMessage";
+import { getErrorMessage, getErrorPresentation } from "../src/lib/getErrorMessage";
 import { ApiError } from "../src/lib/api/client";
 
 test("returns message from Error instance", () => {
-  assert.equal(getErrorMessage(new Error("boom"), "fallback"), "boom");
+  assert.equal(getErrorMessage(new Error("Ошибка валидации"), "fallback"), "Ошибка валидации");
 });
 
 test("returns message field from object errors", () => {
-  assert.equal(getErrorMessage({ message: "api failed" }, "fallback"), "api failed");
+  assert.equal(getErrorMessage({ message: "Ошибка API" }, "fallback"), "Ошибка API");
 });
 
 test("returns fallback for unknown values", () => {
@@ -23,6 +23,40 @@ test("returns human-readable message for known API error codes", () => {
   );
 });
 
-test("returns original API error message for unknown API error codes", () => {
-  assert.equal(getErrorMessage(new ApiError("backend says no", 400, "unknown_code"), "fallback"), "backend says no");
+test("uses security-aware copy for generic conflicts", () => {
+  const presentation = getErrorPresentation(new ApiError("duplicate key", 409, "conflict"), "fallback");
+
+  assert.equal(presentation.title, "Не удалось завершить действие");
+  assert.equal(
+    presentation.message,
+    "Не удалось завершить действие с текущими данными. Проверьте введённые данные или обновите страницу."
+  );
+  assert.equal(presentation.retryable, false);
+});
+
+test("falls back to status presentation for unknown API codes", () => {
+  const presentation = getErrorPresentation(new ApiError("raw server message", 503, "unknown_code"), "fallback");
+
+  assert.equal(presentation.title, "Ошибка сервера");
+  assert.equal(presentation.message, "На сервере произошла ошибка. Попробуйте позже.");
+  assert.equal(presentation.retryable, true);
+});
+
+test("marks connection errors as retryable", () => {
+  const presentation = getErrorPresentation(new Error("Failed to fetch"), "fallback");
+
+  assert.equal(presentation.title, "Проблема с подключением");
+  assert.equal(presentation.message, "Не удалось подключиться к серверу. Проверьте соединение.");
+  assert.equal(presentation.retryable, true);
+});
+
+test("uses status presentation for unknown English API error messages", () => {
+  assert.equal(
+    getErrorMessage(new ApiError("backend says no", 400, "unknown_code"), "fallback"),
+    "Проверьте заполненные поля."
+  );
+});
+
+test("translates known English messages", () => {
+  assert.equal(getErrorMessage(new Error("Failed to fetch"), "fallback"), "Не удалось подключиться к серверу. Проверьте соединение.");
 });

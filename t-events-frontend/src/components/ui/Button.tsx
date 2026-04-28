@@ -3,7 +3,7 @@ import Link, { LinkProps } from "next/link";
 import { ButtonHTMLAttributes, AnchorHTMLAttributes } from "react";
 
 type ButtonBaseProps = {
-    variant?: "primary" | "secondary";
+    variant?: "primary" | "secondary" | "danger" | "ghost";
     className?: string;
 };
 
@@ -13,6 +13,7 @@ type ButtonAsButtonProps = ButtonBaseProps & ButtonHTMLAttributes<HTMLButtonElem
 
 type ButtonAsLinkProps = ButtonBaseProps & AnchorHTMLAttributes<HTMLAnchorElement> & LinkProps & {
     href: string;
+    reloadDocument?: boolean;
 };
 
 type Props = ButtonAsButtonProps | ButtonAsLinkProps;
@@ -33,15 +34,20 @@ export default function Button(props: Props) {
     const variant = props.variant ?? "primary";
     const className = props.className;
     const base =
-        "inline-flex items-center justify-center rounded-[var(--radius-md)] px-4 py-2 text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-50";
-    const styles =
-        variant === "primary"
-            ? "bg-[var(--color-brand-yellow)] text-[var(--color-brand-black)] hover:opacity-90"
-            : "border border-[var(--color-brand-black)] text-[var(--color-brand-black)] hover:bg-[var(--color-brand-yellow)]";
+        "inline-flex min-h-10 items-center justify-center rounded-[var(--radius-md)] px-4 py-2 text-sm font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-black)] focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:opacity-50";
+    const styles = {
+        primary: "bg-[var(--color-brand-yellow)] text-[var(--color-brand-black)] shadow-sm hover:bg-[#f2cd20]",
+        secondary: "border border-neutral-300 bg-white text-[var(--color-brand-black)] hover:bg-neutral-50",
+        danger: "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100",
+        ghost: "bg-transparent text-neutral-700 hover:bg-neutral-100",
+    }[variant];
 
     if (isLinkProps(props)) {
-        const { href } = props;
-        const linkRest = omitKeys(props, ["href", "variant", "className"] as const);
+        const { href, reloadDocument } = props;
+        const linkRest = omitKeys(props, ["href", "variant", "className", "reloadDocument"] as const);
+        if (reloadDocument) {
+            return <a href={href} className={clsx(base, styles, className)} {...linkRest} />;
+        }
         return <Link href={href} className={clsx(base, styles, className)} {...linkRest} />;
     }
 

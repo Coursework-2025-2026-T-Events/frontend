@@ -1,32 +1,36 @@
-const TOKEN_KEY = "t-events-access-token";
+const LOGOUT_INTENT_KEY = "t-events-logout-intent";
 
-function readStoredToken(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return sessionStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
+let memoryToken: string | null = null;
 
-function persistToken(token: string | null) {
-  if (typeof window === "undefined") return;
+function readLogoutIntent(): boolean {
+  if (typeof window === "undefined") return false;
   try {
-    if (token) {
-      sessionStorage.setItem(TOKEN_KEY, token);
-    } else {
-      sessionStorage.removeItem(TOKEN_KEY);
-    }
+    return localStorage.getItem(LOGOUT_INTENT_KEY) === "1";
   } catch {
-    // ignore storage failures in restricted browser modes
+    return false;
   }
 }
 
 export const tokenStore = {
   get: (): string | null => {
-    return readStoredToken();
+    return memoryToken;
   },
   set: (token: string | null) => {
-    persistToken(token);
+    memoryToken = token;
+  },
+  hasLogoutIntent: (): boolean => {
+    return readLogoutIntent();
+  },
+  setLogoutIntent: (value: boolean) => {
+    if (typeof window === "undefined") return;
+    try {
+      if (value) {
+        localStorage.setItem(LOGOUT_INTENT_KEY, "1");
+      } else {
+        localStorage.removeItem(LOGOUT_INTENT_KEY);
+      }
+    } catch {
+      // ignore storage failures in restricted browser modes
+    }
   },
 };

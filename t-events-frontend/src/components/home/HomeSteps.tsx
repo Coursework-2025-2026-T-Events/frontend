@@ -54,12 +54,12 @@ export default function HomeSteps() {
                     as="h2"
                     size="xl"
                     weight="bold"
-                    className="text-balance text-2xl tracking-tight text-neutral-900 sm:text-3xl"
+                    className="text-balance text-2xl tracking-tight text-[var(--color-brand-ink)] sm:text-3xl"
                 >
-                    Первый проход по системе
+                    Пошаговый маршрут первого участия
                 </Typography>
                 <Typography as="p" className="mt-3 text-pretty text-neutral-600 sm:text-lg">
-                    Процесс разбит на три коротких шага, чтобы вы быстро перешли от входа к результату.
+                    Каждый шаг показывает цель, ожидаемое время и конкретный результат, чтобы вы не теряли контекст.
                 </Typography>
             </div>
 
@@ -68,9 +68,9 @@ export default function HomeSteps() {
                     <li
                         key={step.title}
                         aria-label={`Шаг ${idx + 1}: ${step.title}`}
-                        className="relative flex min-h-[250px] flex-col rounded-2xl border border-neutral-200/90 bg-[var(--color-brand-white)] p-6 text-left sm:min-h-[280px] sm:p-7"
+                        className="relative flex min-h-[260px] flex-col rounded-3xl border border-neutral-200/90 bg-white p-6 text-left shadow-[0_10px_24px_rgba(10,15,30,0.06)] sm:min-h-[290px] sm:p-7"
                     >
-                        <span className="absolute right-5 top-5 font-mono text-3xl font-bold leading-none text-neutral-100 sm:right-6 sm:top-6 sm:text-4xl">
+                        <span className="absolute right-5 top-5 font-mono text-4xl font-bold leading-none text-neutral-100 sm:right-6 sm:top-6 sm:text-5xl">
                             {String(idx + 1).padStart(2, "0")}
                         </span>
                         <div
@@ -79,13 +79,13 @@ export default function HomeSteps() {
                         >
                             {step.icon}
                         </div>
-                        <Typography as="h3" size="lg" weight="bold" className="relative text-neutral-900">
+                        <Typography as="h3" size="lg" weight="bold" className="relative text-[var(--color-brand-ink)]">
                             {step.title}
                         </Typography>
-                        <p className="relative mt-2 text-xs font-semibold uppercase tracking-[0.08em] text-neutral-500">
-                            Время: {step.eta}
+                        <p className="relative mt-3 inline-flex w-fit rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-neutral-600">
+                            ETA: {step.eta}
                         </p>
-                        <Typography as="p" size="sm" className="relative mt-2 leading-relaxed text-neutral-600">
+                        <Typography as="p" size="sm" className="relative mt-3 leading-relaxed text-neutral-600">
                             {step.description}
                         </Typography>
                     </li>

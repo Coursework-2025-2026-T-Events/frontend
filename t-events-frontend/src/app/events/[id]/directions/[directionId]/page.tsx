@@ -7,10 +7,14 @@ import { eventsApi } from "@/features/events/api";
 import Card from "@/components/ui/Card";
 import Typography from "@/components/ui/Typography";
 import Button from "@/components/ui/Button";
+import ErrorMessage from "@/components/ui/ErrorMessage";
+import LiveStatus from "@/components/ui/LiveStatus";
 import RequireAuth from "@/features/auth/RequireAuth";
 import { useParticipationStore } from "@/features/participation/store";
 import { useRouter } from "next/navigation";
 import { useIsAuthorized } from "@/features/auth/useIsAuthorized";
+import { getErrorMessage } from "@/lib/getErrorMessage";
+import { routes } from "@/lib/routes";
 
 export default function DirectionDetailsPage() {
   const params = useParams();
@@ -19,22 +23,32 @@ export default function DirectionDetailsPage() {
   const directionId = Number(params.directionId);
   const isAuthorized = useIsAuthorized();
 
-  const { directionId: selectedDirectionId, selectDirection } = useParticipationStore();
+  const { eventId: selectedEventId, directionId: selectedDirectionId, selectDirection } = useParticipationStore();
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["direction", eventId, directionId],
     queryFn: () => eventsApi.directionById(eventId, directionId),
     enabled: Number.isFinite(eventId) && Number.isFinite(directionId) && isAuthorized,
   });
 
-  const isSelected = directionId === selectedDirectionId;
+  const isSelected = selectedEventId === eventId && directionId === selectedDirectionId;
 
   return (
     <RequireAuth>
       <Container>
         <div className="mt-8">
-          {isLoading && <p>Загрузка...</p>}
-          {error && <p className="text-red-600">Ошибка загрузки</p>}
+          {isLoading && (
+            <LiveStatus className="text-sm text-neutral-600" busy>
+              Загрузка направления...
+            </LiveStatus>
+          )}
+          {error && (
+            <ErrorMessage
+              message={getErrorMessage(error, "Не удалось загрузить направление")}
+              actionLabel={isFetching ? "Повторяем..." : "Повторить"}
+              onAction={() => refetch()}
+            />
+          )}
 
           {data && (
             <Card>
@@ -51,8 +65,8 @@ export default function DirectionDetailsPage() {
                 <Button
                   className="mt-4"
                   onClick={() => {
-                    selectDirection(eventId, directionId);
-                    router.push(`/events/${eventId}/directions/${directionId}/games`);
+                    selectDirection(eventId, directionId, { directionName: data.data.name });
+                    router.push(routes.eventDirectionGames(eventId, directionId));
                   }}
                 >
                   Выбрать и открыть игры
@@ -60,12 +74,12 @@ export default function DirectionDetailsPage() {
               )}
 
               {isSelected && (
-                <Button className="mt-4" onClick={() => router.push(`/events/${eventId}/directions/${directionId}/games`)}>
+                <Button className="mt-4" onClick={() => router.push(routes.eventDirectionGames(eventId, directionId))}>
                   Перейти к играм
                 </Button>
               )}
 
-              <Button className="mt-3" variant="secondary" onClick={() => router.push(`/events/${eventId}/directions`)}>
+              <Button className="mt-3" variant="secondary" onClick={() => router.push(routes.eventDirections(eventId))}>
                 Назад к выбору направления
               </Button>
             </Card>

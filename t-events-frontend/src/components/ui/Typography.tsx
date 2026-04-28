@@ -22,9 +22,9 @@ export default function Typography<T extends ElementType = "p">({
 }: TypographyProps<T>) {
   const Tag = (as ?? "p") as ElementType;
   const sizes = {
-    "2xl": "text-3xl md:text-4xl",
-    xl: "text-2xl",
-    lg: "text-xl",
+    "2xl": "text-2xl md:text-3xl",
+    xl: "text-xl md:text-2xl",
+    lg: "text-lg",
     md: "text-base",
     sm: "text-sm",
   };

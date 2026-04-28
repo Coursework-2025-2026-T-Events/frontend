@@ -1,0 +1,12 @@
+services:
+  frontend:
+    build:
+      context: .
+      args:
+        BACKEND_API_ORIGIN: ${BACKEND_API_ORIGIN:-http://host.docker.internal:8080}
+    ports:
+      - "3000:3000"
+    environment:
+      BACKEND_API_ORIGIN: ${BACKEND_API_ORIGIN:-http://host.docker.internal:8080}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

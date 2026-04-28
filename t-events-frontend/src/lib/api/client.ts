@@ -2,16 +2,30 @@ import { tokenStore } from "@/lib/auth/tokenStore";
 
 const API_BASE = "/api/v1";
 const REFRESH_PATH = "/auth/refresh";
+let refreshPromise: Promise<string | null> | null = null;
+
+type ApiEnvelope = {
+  error?: {
+    code?: string;
+    message?: string;
+    details?: unknown;
+  };
+  data?: {
+    access_token?: string;
+  };
+};
 
 export class ApiError extends Error {
   public status: number;
   public code: string;
+  public details: unknown;
 
-  constructor(message: string, status: number, code: string = "http_error") {
+  constructor(message: string, status: number, code: string = "http_error", details: unknown = undefined) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.details = details;
   }
 }
 
@@ -53,6 +67,17 @@ function buildHeaders(options: RequestInit, token: string | null): Headers {
 }
 
 async function executeRefresh(): Promise<string | null> {
+  if (tokenStore.hasLogoutIntent()) return null;
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = executeRefreshRequest().finally(() => {
+    refreshPromise = null;
+  });
+
+  return refreshPromise;
+}
+
+async function executeRefreshRequest(): Promise<string | null> {
   try {
     const rfRes = await fetch(`${API_BASE}${REFRESH_PATH}`, {
       method: "POST",
@@ -61,7 +86,7 @@ async function executeRefresh(): Promise<string | null> {
     });
     if (!rfRes.ok) return null;
 
-    const rfData = await rfRes.json();
+    const rfData = (await rfRes.json()) as ApiEnvelope;
     const newToken = rfData?.data?.access_token;
     if (typeof newToken === "string" && newToken.length > 0) {
       tokenStore.set(newToken);
@@ -82,8 +107,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     credentials: "include",
   });
 
-  if (res.status === 401 && path !== REFRESH_PATH) {
-    // Note: For advanced concurrency, implement a React Context-based queue or use TanStack Query's retry mechanisms instead of a global promise
+  if (res.status === 401 && path !== REFRESH_PATH && !tokenStore.hasLogoutIntent()) {
     token = await executeRefresh();
 
     if (token) {
@@ -97,7 +121,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     }
   }
 
-  let data: any;
+  let data: unknown;
   const contentType = res.headers.get("content-type");
   if (contentType && contentType.includes("application/json")) {
     try {
@@ -110,9 +134,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    const errorMsg = data?.error?.message || (typeof data === "string" ? data : "Unknown API Error");
-    const errorCode = data?.error?.code || "http_error";
-    throw new ApiError(errorMsg, res.status, errorCode);
+    const responseData = typeof data === "object" && data !== null ? (data as ApiEnvelope) : null;
+    const errorMsg =
+      responseData?.error?.message || (typeof data === "string" && data.trim() ? data : "Unknown API Error");
+    const errorCode = responseData?.error?.code || "http_error";
+    const details = responseData?.error?.details;
+    throw new ApiError(errorMsg, res.status, errorCode, details);
   }
   return data as T;
 }

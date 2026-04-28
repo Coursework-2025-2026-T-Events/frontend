@@ -1,22 +1,34 @@
 import clsx from "clsx";
+import { useId } from "react";
 
 type Props = React.InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
   error?: string;
 };
 
-export default function Input({ label, error, className, ...props }: Props) {
+export default function Input({ label, error, className, id, ...props }: Props) {
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const errorId = `${inputId}-error`;
+
   return (
-    <label className="block">
-      {label && <span className="mb-1 block text-sm font-medium">{label}</span>}
+    <label className="block" htmlFor={inputId}>
+      {label && <span className="mb-1.5 block text-sm font-medium text-neutral-700">{label}</span>}
       <input
+        {...props}
+        id={inputId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : props["aria-describedby"]}
         className={clsx(
-          "w-full rounded-[var(--radius-md)] border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-black)]",
+          "h-10 w-full rounded-[var(--radius-md)] border border-neutral-300 bg-white px-3 text-sm outline-none transition-colors placeholder:text-neutral-400 focus:border-[var(--color-brand-black)] disabled:bg-neutral-50 disabled:text-neutral-500",
           className
         )}
-        {...props}
       />
-      {error && <span className="mt-1 block text-xs text-red-600">{error}</span>}
+      {error && (
+        <span id={errorId} role="alert" className="mt-1 block text-xs text-red-600">
+          {error}
+        </span>
+      )}
     </label>
   );
 }

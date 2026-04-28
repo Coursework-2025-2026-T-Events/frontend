@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import type { UserRole } from "@/lib/api/types";
 import { isRoleAllowed } from "./authorization";
+import { buildLoginPath } from "@/lib/auth/redirect";
+import { routes } from "@/lib/routes";
+import LiveStatus from "@/components/ui/LiveStatus";
 
 type RequireAuthProps = {
     children: React.ReactNode;
@@ -14,7 +17,7 @@ type RequireAuthProps = {
 export default function RequireAuth({ children, allowedRoles }: RequireAuthProps) {
     const { user, isBootstrapping } = useAuth();
     const router = useRouter();
-    const accessDeniedRedirectPath = "/events?accessDenied=1";
+    const accessDeniedRedirectPath = routes.accessDeniedEvents;
     const isAuthenticated = !!user;
     const isRoleAuthorized = useMemo(() => {
         if (!user) return false;
@@ -24,7 +27,8 @@ export default function RequireAuth({ children, allowedRoles }: RequireAuthProps
     useEffect(() => {
         if (isBootstrapping) return;
         if (!isAuthenticated) {
-            router.replace("/auth/login");
+            const nextPath = `${window.location.pathname}${window.location.search}`;
+            router.replace(buildLoginPath(nextPath));
             return;
         }
         if (!isRoleAuthorized) router.replace(accessDeniedRedirectPath);
@@ -32,14 +36,29 @@ export default function RequireAuth({ children, allowedRoles }: RequireAuthProps
 
     if (isBootstrapping) {
         return (
-            <div className="flex h-screen w-full items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-neutral-200 border-t-[var(--color-brand-yellow)]"></div>
-            </div>
+            <LiveStatus centered busy>
+                <div className="flex flex-col items-center gap-3">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-neutral-200 border-t-[var(--color-brand-yellow)]"></div>
+                    <span className="text-sm font-medium text-neutral-600">Проверяем вход...</span>
+                </div>
+            </LiveStatus>
         );
     }
 
-    if (!isAuthenticated) return null;
-    if (!isRoleAuthorized) return null;
+    if (!isAuthenticated) {
+        return (
+            <LiveStatus centered>
+                <span className="text-sm font-medium text-neutral-600">Перенаправляем на вход...</span>
+            </LiveStatus>
+        );
+    }
+    if (!isRoleAuthorized) {
+        return (
+            <LiveStatus centered>
+                <span className="text-sm font-medium text-neutral-600">Перенаправляем в доступный раздел...</span>
+            </LiveStatus>
+        );
+    }
 
     return <>{children}</>;
 }

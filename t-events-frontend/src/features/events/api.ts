@@ -5,6 +5,7 @@ import type {
   DirectionsResponse,
   DirectionResponse,
   DirectionGamesResponse,
+  DirectionLeaderboardResponse,
   StartOrResumeSessionResponse,
   SessionStateResponse,
   SubmitAnswerResponse,
@@ -28,6 +29,19 @@ export const eventsApi = {
   directions: (eventId: number) => api.get<DirectionsResponse>(`/events/${eventId}/directions`),
   directionById: (eventId: number, directionId: number) =>
     api.get<DirectionResponse>(`/events/${eventId}/directions/${directionId}`),
+  directionLeaderboard: (
+    eventId: number,
+    directionId: number,
+    params: { limit?: number; offset?: number } = {}
+  ) => {
+    const searchParams = new URLSearchParams();
+    if (params.limit !== undefined) searchParams.set("limit", String(params.limit));
+    if (params.offset !== undefined) searchParams.set("offset", String(params.offset));
+    const query = searchParams.toString();
+    return api.get<DirectionLeaderboardResponse>(
+      `/events/${eventId}/directions/${directionId}/leaderboard${query ? `?${query}` : ""}`
+    );
+  },
   directionGames: (eventId: number, directionId: number) =>
     api.get<DirectionGamesResponse>(`/events/${eventId}/directions/${directionId}/games`),
   startOrResumeSession: (eventId: number, directionId: number, eventGameId: number) =>

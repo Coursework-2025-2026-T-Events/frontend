@@ -2,17 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Container from "@/components/ui/Container";
 import Card from "@/components/ui/Card";
 import Typography from "@/components/ui/Typography";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import RequireAuth from "@/features/auth/RequireAuth";
 import { eventsApi, type SubmitAnswerPayload } from "@/features/events/api";
+import { getQuizKeyboardAction } from "@/features/events/quizKeyboard";
 import { getErrorMessage } from "@/lib/getErrorMessage";
-import type { CurrentQuestionDTO, SessionStateDTO, StartOrResumeSessionDTO } from "@/lib/api/types";
+import type { CurrentQuestionDTO, QuizQuestionOptionDTO, SessionStateDTO, StartOrResumeSessionDTO } from "@/lib/api/types";
 import { useIsAuthorized } from "@/features/auth/useIsAuthorized";
+import { routes } from "@/lib/routes";
 
 type RuntimeState = {
   session_id: number;
@@ -20,6 +23,16 @@ type RuntimeState = {
   progress: SessionStateDTO["progress"];
   current_question: CurrentQuestionDTO | null;
 };
+
+function isFinishedSession(status: SessionStateDTO["status"]): boolean {
+  return status === "finished";
+}
+
+function difficultyLabel(difficulty: CurrentQuestionDTO["difficulty"]): string {
+  if (difficulty === "easy") return "легкая";
+  if (difficulty === "medium") return "средняя";
+  return "сложная";
+}
 
 function toRuntimeState(source: StartOrResumeSessionDTO | SessionStateDTO): RuntimeState {
   return {
@@ -33,7 +46,6 @@ function toRuntimeState(source: StartOrResumeSessionDTO | SessionStateDTO): Runt
 export default function GameSessionPage() {
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
   const eventId = Number(params.id);
@@ -41,11 +53,9 @@ export default function GameSessionPage() {
   const eventGameId = Number(params.eventGameId);
   const isAuthorized = useIsAuthorized();
 
-  const sessionIdParam = Number(searchParams.get("sessionId"));
-  const hasSessionIdParam = Number.isFinite(sessionIdParam) && sessionIdParam > 0;
-
   const [answerText, setAnswerText] = useState("");
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
+  const quizOptionRefs = useRef<Record<number, HTMLButtonElement | null>>({});
   const hasStartedRef = useRef(false);
 
   const startSessionMutation = useMutation({
@@ -54,20 +64,17 @@ export default function GameSessionPage() {
 
   useEffect(() => {
     hasStartedRef.current = false;
-  }, [eventId, directionId, eventGameId, hasSessionIdParam]);
+  }, [eventId, directionId, eventGameId]);
 
   useEffect(() => {
     if (!isAuthorized) return;
     if (!Number.isFinite(eventId) || !Number.isFinite(directionId) || !Number.isFinite(eventGameId)) return;
-    if (hasSessionIdParam) return;
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
     startSessionMutation.mutate();
-  }, [directionId, eventGameId, eventId, hasSessionIdParam, isAuthorized, startSessionMutation]);
+  }, [directionId, eventGameId, eventId, isAuthorized, startSessionMutation]);
 
-  const activeSessionId = hasSessionIdParam
-    ? sessionIdParam
-    : startSessionMutation.data?.data.session_id ?? null;
+  const activeSessionId = startSessionMutation.data?.data.session_id ?? null;
 
   const sessionStateQuery = useQuery({
     queryKey: ["game-session-state", eventId, directionId, eventGameId, activeSessionId],
@@ -91,21 +98,35 @@ export default function GameSessionPage() {
     },
   });
 
-  const state = submitAnswerMutation.data?.data
-    ? ({
+  const stateCandidates: Array<{ timestamp: number; state: RuntimeState }> = [];
+  if (startSessionMutation.data?.data) {
+    stateCandidates.push({
+      timestamp: startSessionMutation.submittedAt,
+      state: toRuntimeState(startSessionMutation.data.data),
+    });
+  }
+  if (sessionStateQuery.data?.data) {
+    stateCandidates.push({
+      timestamp: sessionStateQuery.dataUpdatedAt,
+      state: toRuntimeState(sessionStateQuery.data.data),
+    });
+  }
+  if (submitAnswerMutation.data?.data) {
+    stateCandidates.push({
+      timestamp: submitAnswerMutation.submittedAt,
+      state: {
         session_id: submitAnswerMutation.data.data.session_id,
         status: submitAnswerMutation.data.data.status,
         progress: submitAnswerMutation.data.data.progress,
         current_question: submitAnswerMutation.data.data.next_question,
-      } as RuntimeState)
-    : sessionStateQuery.data?.data
-      ? toRuntimeState(sessionStateQuery.data.data)
-      : startSessionMutation.data?.data
-        ? toRuntimeState(startSessionMutation.data.data)
-        : null;
+      },
+    });
+  }
+  const state = stateCandidates.sort((left, right) => right.timestamp - left.timestamp)[0]?.state ?? null;
 
   const gameTitle = startSessionMutation.data?.data?.game.title ?? "Игра";
   const lastResult = submitAnswerMutation.data?.data?.answer_result ?? null;
+  const directionSummary = submitAnswerMutation.data?.data?.direction_summary ?? null;
   const currentQuestion = state?.current_question;
 
   const canSubmit = !!(
@@ -134,6 +155,32 @@ export default function GameSessionPage() {
     });
   };
 
+  const focusQuizOption = (options: QuizQuestionOptionDTO[], index: number) => {
+    const option = options[index];
+    if (!option) return;
+    setSelectedOptionId(option.option_id);
+    quizOptionRefs.current[option.option_id]?.focus();
+  };
+
+  const handleQuizKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    options: QuizQuestionOptionDTO[],
+    index: number
+  ) => {
+    const action = getQuizKeyboardAction(event.key, index, options.length);
+
+    if (action.type === "select") {
+      event.preventDefault();
+      setSelectedOptionId(options[index].option_id);
+      return;
+    }
+
+    if (action.type === "move") {
+      event.preventDefault();
+      focusQuizOption(options, action.nextIndex);
+    }
+  };
+
   const isLoadingInitialState = (startSessionMutation.isPending || sessionStateQuery.isLoading) && !state;
   const initialError = startSessionMutation.error ?? sessionStateQuery.error;
 
@@ -144,6 +191,13 @@ export default function GameSessionPage() {
           <Typography as="h1" size="xl" weight="bold">
             {gameTitle}
           </Typography>
+          <Breadcrumbs
+            items={[
+              { label: "Мероприятия", href: routes.events },
+              { label: "Игры", href: routes.eventDirectionGames(eventId, directionId) },
+              { label: gameTitle },
+            ]}
+          />
 
           {isLoadingInitialState && <Typography>Загрузка сессии...</Typography>}
 
@@ -154,37 +208,31 @@ export default function GameSessionPage() {
           )}
 
           {state && (
-            <Card>
-              <Typography as="h2" size="lg" weight="bold">
-                Прогресс
-              </Typography>
-              <Typography className="mt-2 text-neutral-700" size="sm">
-                Баллы: {state.progress.current_score} / {state.progress.max_score}
-              </Typography>
-              <Typography className="mt-1 text-neutral-700" size="sm">
-                Вопросы: {state.progress.answered_questions} / {state.progress.total_questions}
-              </Typography>
-              <Typography className="mt-1 text-neutral-700" size="sm">
-                Текущий вопрос: {state.progress.current_question_index}
-              </Typography>
-              <Typography className="mt-1 text-neutral-700" size="sm">
-                Статус: {state.status === "completed" ? "завершена" : state.status === "expired" ? "истекла" : "активна"}
-              </Typography>
-            </Card>
+            <div className="rounded-[var(--radius-md)] border border-neutral-200 bg-white p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-neutral-700">
+                <span className="font-medium">Баллы: {state.progress.current_score} / {state.progress.max_score}</span>
+                <span>Вопросы: {state.progress.answered_questions} / {state.progress.total_questions}</span>
+                <span>{isFinishedSession(state.status) ? "Завершена" : state.status === "expired" ? "Истекла" : "Активна"}</span>
+              </div>
+            </div>
           )}
 
-          {lastResult && (
-            <Card>
-              <Typography as="h2" size="lg" weight="bold">
-                Последний ответ
-              </Typography>
-              <Typography className="mt-2 text-neutral-700" size="sm">
-                {lastResult.is_correct ? "Верно" : "Неверно"}, начислено баллов: {lastResult.earned_score}
-              </Typography>
-            </Card>
+          {(lastResult || directionSummary) && (
+            <div className="rounded-[var(--radius-md)] border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
+              {lastResult && (
+                <span className="font-medium">
+                  {lastResult.is_correct ? "Верно" : "Неверно"}, +{lastResult.earned_score} баллов.
+                </span>
+              )}
+              {directionSummary && (
+                <span className="ml-2">
+                  Направление: {directionSummary.current_direction_score} / {directionSummary.direction_max_score}.
+                </span>
+              )}
+            </div>
           )}
 
-          {state?.status === "completed" && (
+          {state && isFinishedSession(state.status) && (
             <Card>
               <Typography as="h2" size="lg" weight="bold">
                 Игра завершена
@@ -204,7 +252,7 @@ export default function GameSessionPage() {
                 {currentQuestion.prompt}
               </Typography>
               <Typography className="mt-2 text-neutral-600" size="sm">
-                Сложность: {currentQuestion.difficulty}, баллы: {currentQuestion.score}
+                Сложность: {difficultyLabel(currentQuestion.difficulty)}, баллы: {currentQuestion.score}
               </Typography>
 
               {currentQuestion.engine === "question_answer" && (
@@ -219,19 +267,31 @@ export default function GameSessionPage() {
               )}
 
               {currentQuestion.engine === "quiz" && (
-                <div className="mt-4 space-y-2">
-                  {currentQuestion.options.map((option) => (
+                <div className="mt-4 space-y-2" role="radiogroup" aria-label="Варианты ответа">
+                  {currentQuestion.options.map((option, index) => (
                     <button
                       key={option.option_id}
                       type="button"
-                      className={`w-full rounded border px-3 py-2 text-left text-sm ${
+                      role="radio"
+                      aria-checked={selectedOptionId === option.option_id}
+                      tabIndex={selectedOptionId === option.option_id || (selectedOptionId === null && index === 0) ? 0 : -1}
+                      ref={(element) => {
+                        quizOptionRefs.current[option.option_id] = element;
+                      }}
+                      className={`flex w-full items-center justify-between gap-3 rounded border px-3 py-2 text-left text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-brand-black)] focus-visible:ring-offset-2 ${
                         selectedOptionId === option.option_id
                           ? "border-[var(--color-brand-black)] bg-[var(--color-brand-yellow)]"
-                          : "border-neutral-200"
+                          : "border-neutral-200 bg-white hover:bg-neutral-50"
                       }`}
                       onClick={() => setSelectedOptionId(option.option_id)}
+                      onKeyDown={(event) => handleQuizKeyDown(event, currentQuestion.options, index)}
                     >
-                      {option.text}
+                      <span>{option.text}</span>
+                      {selectedOptionId === option.option_id && (
+                        <span className="shrink-0 text-xs font-bold uppercase text-[var(--color-brand-black)]">
+                          Выбрано
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -250,21 +310,8 @@ export default function GameSessionPage() {
           )}
 
           <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => router.push(`/events/${eventId}/directions/${directionId}/games`)}>
+            <Button variant="secondary" onClick={() => router.push(routes.eventDirectionGames(eventId, directionId))}>
               К списку игр
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                if (activeSessionId) {
-                  sessionStateQuery.refetch();
-                } else {
-                  hasStartedRef.current = true;
-                  startSessionMutation.mutate();
-                }
-              }}
-            >
-              Обновить состояние
             </Button>
           </div>
         </div>

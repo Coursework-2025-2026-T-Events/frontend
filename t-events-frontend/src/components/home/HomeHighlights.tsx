@@ -3,7 +3,7 @@ import Typography from "@/components/ui/Typography";
 const highlights = [
     {
         title: "Понятный первый экран",
-        description: "Сразу видно, что делать дальше: начать onboarding, открыть каталог или войти в профиль.",
+        description: "Сразу видно, что делать дальше: начать знакомство, открыть каталог или войти в профиль.",
         proof: "Меньше ошибок на старте",
         icon: (
             <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -55,18 +55,19 @@ export default function HomeHighlights() {
             {highlights.map((item) => (
                 <div
                     key={item.title}
-                    className="group flex h-full flex-col rounded-2xl border border-neutral-200 bg-[var(--color-brand-white)] p-6 transition-transform duration-200 hover:-translate-y-0.5"
+                    className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white p-6 shadow-[0_10px_24px_rgba(10,15,30,0.06)] transition-transform duration-200 hover:-translate-y-1"
                 >
+                    <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-[var(--color-brand-yellow)]/25 blur-xl" aria-hidden />
                     <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-brand-yellow)]/90 text-[var(--color-brand-black)] sm:h-11 sm:w-11">
                         {item.icon}
                     </div>
-                    <Typography as="h3" size="lg" weight="bold" className="text-neutral-900">
+                    <Typography as="h3" size="lg" weight="bold" className="text-[var(--color-brand-ink)]">
                         {item.title}
                     </Typography>
                     <Typography as="p" size="sm" className="mt-2 leading-relaxed text-neutral-600">
                         {item.description}
                     </Typography>
-                    <p className="mt-4 inline-flex w-fit items-center rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-medium text-neutral-600">
+                    <p className="mt-5 inline-flex w-fit items-center rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-medium text-neutral-700">
                         {item.proof}
                     </p>
                 </div>

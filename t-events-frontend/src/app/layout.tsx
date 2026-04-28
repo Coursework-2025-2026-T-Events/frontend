@@ -6,7 +6,7 @@ import { AuthProvider } from "@/features/auth/AuthProvider";
 
 export const metadata: Metadata = {
   title: "T-Events",
-  description: "T-Events frontend",
+  description: "Клиентская часть T-Events",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
