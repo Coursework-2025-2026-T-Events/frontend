@@ -172,7 +172,7 @@ export default function EventsPage() {
         <Container>
           <div className="py-8 sm:py-10 lg:py-12">
             <div className="relative overflow-hidden rounded-[var(--radius-lg)] bg-transparent">
-              <div className="grid lg:min-h-[420px] lg:grid-cols-[minmax(0,1fr)_minmax(440px,560px)] lg:items-center">
+              <div className="grid lg:min-h-[420px] lg:grid-cols-[minmax(0,1fr)_minmax(440px,560px)] lg:items-center lg:gap-8">
                 <div className="relative z-10 px-0 py-8 sm:py-10 lg:flex lg:flex-col lg:justify-center lg:py-14 lg:pr-8">
                   <span className="inline-flex w-fit rounded-full bg-[var(--color-brand-yellow)] px-3 py-1 text-[13px] font-medium leading-[18px] text-[var(--color-brand-ink)]">
                     Каталог
@@ -197,7 +197,7 @@ export default function EventsPage() {
                     sizes="(min-width: 1024px) 560px, 100vw"
                     priority
                     unoptimized
-                    className="object-contain object-center lg:object-right"
+                    className="object-contain object-center lg:translate-y-4"
                     aria-hidden
                   />
                 </div>

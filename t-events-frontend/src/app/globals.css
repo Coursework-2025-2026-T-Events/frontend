@@ -64,6 +64,11 @@ select {
   -webkit-tap-highlight-color: transparent;
 }
 
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
 ::selection {
   background: var(--color-brand-yellow);
   color: var(--color-brand-ink);

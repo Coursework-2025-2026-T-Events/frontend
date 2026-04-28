@@ -1,9 +1,9 @@
 "use client";
 
-import { useId, useState } from "react";
+import { Suspense, useId, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -38,9 +38,10 @@ type FormData = z.infer<typeof schema>;
 type AuthFieldProps = React.InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   error?: string;
+  endAdornment?: React.ReactNode;
 };
 
-function AuthField({ label, error, id, className, ...props }: AuthFieldProps) {
+function AuthField({ label, error, id, className, endAdornment, ...props }: AuthFieldProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const errorId = `${inputId}-error`;
@@ -48,18 +49,21 @@ function AuthField({ label, error, id, className, ...props }: AuthFieldProps) {
   return (
     <label htmlFor={inputId} className="block">
       <span className="mb-2 block text-[13px] leading-[18px] text-[var(--color-brand-graphite)]">{label}</span>
-      <input
-        {...props}
-        id={inputId}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : props["aria-describedby"]}
-        className={[
-          "h-14 w-full rounded-[var(--radius-md)] border border-[var(--color-brand-line)] bg-white px-4 text-[15px] leading-5 text-[var(--color-brand-ink)] outline-none transition-colors placeholder:text-[var(--color-brand-muted)] focus:border-[var(--color-brand-ink)] disabled:bg-[var(--color-brand-panel)]",
-          className,
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      />
+      <div className="relative">
+        <input
+          {...props}
+          id={inputId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : props["aria-describedby"]}
+          className={[
+            "h-14 w-full rounded-[var(--radius-md)] border border-[var(--color-brand-line)] bg-white px-4 text-[15px] leading-5 text-[var(--color-brand-ink)] outline-none transition-colors placeholder:text-[var(--color-brand-muted)] focus:border-[var(--color-brand-ink)] disabled:bg-[var(--color-brand-panel)]",
+            className,
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        />
+        {endAdornment && <div className="absolute right-3 top-1/2 -translate-y-1/2">{endAdornment}</div>}
+      </div>
       {error && (
         <span id={errorId} role="alert" className="mt-1.5 block text-[13px] leading-[18px] text-red-600">
           {error}
@@ -77,16 +81,13 @@ function getErrorField(error: unknown): keyof FormData | null {
   return null;
 }
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setUser } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [nextPath] = useState(() =>
-    typeof window === "undefined"
-      ? "/events"
-      : getSafeRedirectPath(new URLSearchParams(window.location.search).get("next")),
-  );
+  const nextPath = getSafeRedirectPath(searchParams.get("next"));
 
   const {
     register,
@@ -142,20 +143,20 @@ export default function RegisterPage() {
 
             <form className="mt-7 space-y-4" onSubmit={handleSubmit(onSubmit)}>
               <AuthField label="Электронная почта" type="email" autoComplete="email" {...register("email")} error={errors.email?.message} />
-              <div className="relative">
-                <AuthField
-                  label="Пароль"
-                  type={isPasswordVisible ? "text" : "password"}
-                  autoComplete="new-password"
-                  className="pr-12"
-                  {...register("password")}
-                  error={errors.password?.message}
-                />
-                <PasswordVisibilityButton
-                  isVisible={isPasswordVisible}
-                  onClick={() => setIsPasswordVisible((value) => !value)}
-                />
-              </div>
+              <AuthField
+                label="Пароль"
+                type={isPasswordVisible ? "text" : "password"}
+                autoComplete="new-password"
+                className="pr-12"
+                {...register("password")}
+                error={errors.password?.message}
+                endAdornment={
+                  <PasswordVisibilityButton
+                    isVisible={isPasswordVisible}
+                    onClick={() => setIsPasswordVisible((value) => !value)}
+                  />
+                }
+              />
               <AuthField label="ФИО" autoComplete="name" {...register("full_name")} error={errors.full_name?.message} />
               <AuthField label="Телефон" type="tel" autoComplete="tel" {...register("phone")} error={errors.phone?.message} />
 
@@ -201,5 +202,13 @@ export default function RegisterPage() {
         </div>
       </Container>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterContent />
+    </Suspense>
   );
 }

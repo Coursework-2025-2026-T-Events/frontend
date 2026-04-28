@@ -2,17 +2,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import Container from "@/components/ui/Container";
-import { eventsApi } from "@/features/events/api";
-import Card from "@/components/ui/Card";
-import Typography from "@/components/ui/Typography";
+import { ArrowLeft } from "lucide-react";
 import Button from "@/components/ui/Button";
+import Container from "@/components/ui/Container";
 import ErrorMessage from "@/components/ui/ErrorMessage";
-import LoadingState from "@/components/ui/LoadingState";
-import PageHeader from "@/components/ui/PageHeader";
+import { DirectionCard, DirectionSkeleton } from "@/components/events/DirectionCard";
 import RequireAuth from "@/features/auth/RequireAuth";
-import { useParticipationStore } from "@/features/participation/store";
 import { useIsAuthorized } from "@/features/auth/useIsAuthorized";
+import { eventsApi } from "@/features/events/api";
+import { useParticipationStore } from "@/features/participation/store";
 import { getErrorPresentation } from "@/lib/getErrorMessage";
 import { routes } from "@/lib/routes";
 
@@ -29,20 +27,50 @@ export default function DirectionsPage() {
     queryFn: () => eventsApi.directions(eventId),
     enabled: Number.isFinite(eventId) && isAuthorized,
   });
+  const directions = data?.data ?? [];
   const directionsError = error ? getErrorPresentation(error, "Не удалось загрузить направления") : null;
 
   return (
     <RequireAuth>
-      <Container>
-        <div className="mt-8">
-          <PageHeader title="Выбор направления" description="Выберите одно направление для участия" />
+      <div className="min-h-[calc(100vh-4rem)] bg-[var(--color-brand-mist)] pb-16">
+        <section className="bg-[var(--color-brand-mist)]">
+          <Container>
+            <div className="py-8 sm:py-10 lg:py-12">
+              <Button
+                variant="ghost"
+                href={routes.events}
+                className="-ml-3 mb-6 min-h-10 px-3 text-[15px] font-normal text-[var(--color-brand-graphite)]"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" aria-hidden />
+                К мероприятиям
+              </Button>
 
+              <div>
+                <span className="inline-flex rounded-full bg-[var(--color-brand-yellow)] px-3 py-1 text-[13px] font-medium leading-[18px] text-[var(--color-brand-ink)]">
+                  Направления
+                </span>
+                <h1 className="mt-5 max-w-3xl text-balance text-[36px] font-bold leading-10 text-[var(--color-brand-ink)] sm:text-[44px] sm:leading-[48px]">
+                  Выберите подходящее направление
+                </h1>
+                <p className="mt-4 max-w-2xl text-[15px] leading-6 text-[var(--color-brand-graphite)]">
+                  Можно начать с привычной темы или попробовать что-то новое. В каждом направлении собраны свои задания и игры: выбирайте то, что интересно сейчас, и переходите к участию.
+                </p>
+              </div>
+            </div>
+          </Container>
+        </section>
+
+        <Container>
           {isLoading && (
-            <LoadingState className="mt-4" message="Загрузка направлений..." />
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-label="Загрузка направлений">
+              {[0, 1, 2].map((item) => (
+                <DirectionSkeleton key={item} />
+              ))}
+            </div>
           )}
+
           {error && (
             <ErrorMessage
-              className="mt-4"
               title={directionsError?.title}
               message={directionsError?.message ?? "Не удалось загрузить направления"}
               actionLabel={directionsError?.retryable ? (isFetching ? "Повторяем..." : "Повторить") : undefined}
@@ -50,47 +78,40 @@ export default function DirectionsPage() {
             />
           )}
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {data?.data.map((d) => {
-              const isSelected = selectedEventId === eventId && d.direction_id === selectedDirectionId;
-              return (
-                <Card key={d.direction_id} className={isSelected ? "border-[var(--color-brand-black)]" : ""}>
-                  <Typography as="h2" size="lg" weight="bold">
-                    {d.name}
-                  </Typography>
-                  <Typography className="mt-2 text-neutral-600" size="sm">
-                    Направление мероприятия
-                  </Typography>
-
-                  <Button
-                    className="mt-4 w-full"
-                    variant={isSelected ? "secondary" : "primary"}
-                    onClick={() => {
+          {!isLoading && !error && directions.length > 0 && (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {directions.map((direction) => {
+                const isSelected = selectedEventId === eventId && direction.direction_id === selectedDirectionId;
+                return (
+                  <DirectionCard
+                    key={direction.direction_id}
+                    direction={direction}
+                    selected={isSelected}
+                    onOpen={() => {
                       if (!isSelected) {
-                        selectDirection(eventId, d.direction_id, { directionName: d.name });
+                        selectDirection(eventId, direction.direction_id, { directionName: direction.name });
                       }
-                      router.push(routes.eventDirectionGames(eventId, d.direction_id));
+                      router.push(routes.eventDirectionGames(eventId, direction.direction_id));
                     }}
-                  >
-                    {isSelected ? "Открыть игры" : "Выбрать и открыть"}
-                  </Button>
-                </Card>
-              );
-            })}
-          </div>
-
-          {!isLoading && !error && data?.data.length === 0 && (
-            <Card className="mt-6">
-              <Typography as="h2" size="lg" weight="bold">
-                Направления пока не добавлены
-              </Typography>
-              <Typography className="mt-2 text-neutral-600" size="sm">
-                Организаторы еще не открыли направления для этого мероприятия.
-              </Typography>
-            </Card>
+                  />
+                );
+              })}
+            </div>
           )}
-        </div>
-      </Container>
+
+          {!isLoading && !error && directions.length === 0 && (
+            <div className="rounded-[var(--radius-lg)] bg-white p-6 shadow-[var(--shadow-card)] sm:p-8">
+              <h2 className="text-[24px] font-medium leading-7 text-[var(--color-brand-ink)]">Направления пока не добавлены</h2>
+              <p className="mt-3 max-w-2xl text-[15px] leading-6 text-[var(--color-brand-graphite)]">
+                Организаторы ещё готовят игры для этого мероприятия. Попробуйте вернуться к списку позже.
+              </p>
+              <Button href={routes.events} variant="secondary" className="mt-5 min-h-12 px-6 text-[15px] font-normal">
+                Вернуться к мероприятиям
+              </Button>
+            </div>
+          )}
+        </Container>
+      </div>
     </RequireAuth>
   );
 }
