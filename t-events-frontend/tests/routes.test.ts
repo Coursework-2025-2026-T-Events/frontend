@@ -4,7 +4,6 @@ import { routes } from "../src/lib/routes";
 
 test("builds participant event routes", () => {
   assert.equal(routes.events, "/events");
-  assert.equal(routes.currentParticipation, "/events/current");
   assert.equal(routes.event(7), "/events/7");
   assert.equal(routes.eventDirections(7), "/events/7/directions");
   assert.equal(routes.eventDirectionGames(7, 3), "/events/7/directions/3/games");

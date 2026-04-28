@@ -1,7 +1,6 @@
 export const routes = {
   home: "/",
   events: "/events",
-  currentParticipation: "/events/current",
   accessDeniedEvents: "/events?accessDenied=1",
   login: "/auth/login",
   register: "/auth/register",

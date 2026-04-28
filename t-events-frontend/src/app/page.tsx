@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import HomeHeroActions from "@/components/home/HomeHeroActions";
 import Container from "@/components/ui/Container";
 
 export const metadata: Metadata = {
@@ -48,21 +49,7 @@ export default function Home() {
             <p className="mx-auto mt-5 max-w-2xl text-pretty text-[15px] leading-6 text-[var(--color-brand-graphite)]">
               Вы здесь, потому что любите крутые призы! Проявляйте себя, участвуя в играх, и получайте награды за баллы.
             </p>
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link
-                href="/events"
-                className="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-brand-yellow)] px-6 py-3 text-[15px] font-normal leading-5 text-[var(--color-brand-ink)] transition hover:bg-[var(--color-brand-yellow-hover)]"
-              >
-                Смотреть мероприятия
-                <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
-              </Link>
-              <Link
-                href="/auth/login"
-                className="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-brand-line)] bg-white px-6 py-3 text-[15px] font-normal leading-5 text-[var(--color-brand-ink)] transition hover:bg-[var(--color-brand-panel)]"
-              >
-                Войти в профиль
-              </Link>
-            </div>
+            <HomeHeroActions />
           </div>
 
           <div className="mx-auto mt-16 flex max-w-5xl flex-col gap-6 sm:mt-20" aria-label="Путь участника">

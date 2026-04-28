@@ -31,11 +31,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const roleLinks = (
     <>
-      {user?.role === "participant" && (
-        <Link href={routes.currentParticipation} className={navLinkClassName}>
-          Текущее участие
-        </Link>
-      )}
       {isStander && (
         <>
           <Link href={routes.standerScan} className={navLinkClassName}>
@@ -130,11 +125,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div id="mobile-menu" className="bg-white shadow-[var(--shadow-card)] lg:hidden">
             <Container>
               <nav className="flex flex-col gap-2 py-4">
-                {user?.role === "participant" && (
-                  <Link href={routes.currentParticipation} onClick={closeMenu} className={mobileNavLinkClassName}>
-                    Текущее участие
-                  </Link>
-                )}
                 {isStander && (
                   <>
                     <Link href={routes.standerScan} onClick={closeMenu} className={mobileNavLinkClassName}>
