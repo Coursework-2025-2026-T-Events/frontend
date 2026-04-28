@@ -5,8 +5,8 @@ import AppShell from "@/components/layout/AppShell";
 import { AuthProvider } from "@/features/auth/AuthProvider";
 
 export const metadata: Metadata = {
-  title: "T-Events",
-  description: "Клиентская часть T-Events",
+  title: "Т-Мероприятия",
+  description: "Клиентская часть Т-Мероприятий",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -5,15 +5,15 @@ import { ArrowRight } from "lucide-react";
 import Container from "@/components/ui/Container";
 
 export const metadata: Metadata = {
-  title: "T-Events - образовательные мероприятия",
-  description: "T-Events помогает школьникам выбрать мероприятие, пройти активности и получить награду.",
+  title: "Т-Мероприятия - образовательные мероприятия",
+  description: "Т-Мероприятия помогают школьникам выбрать мероприятие, пройти активности и получить награду.",
 };
 
 const heroSteps = [
   {
     eyebrow: "Каталог событий",
     title: "Выбирайте мероприятие",
-    text: "Откройте каталог и найдите событие, в котором хочется участвовать.",
+    text: "Откройте каталог мероприятий и выберите то, в котором принимаете участие.",
     image: "/images/step-choose-event.png",
     alt: "Календарь, билет и чек-лист для выбора образовательного мероприятия",
   },
@@ -27,7 +27,7 @@ const heroSteps = [
   {
     eyebrow: "Приз за финиш",
     title: "Получайте призы",
-    text: "Дойдите до финиша и покажите QR на стойке выдачи.",
+    text: "Наберите необходимое количество баллов и покажите QR для получения приза на стойке выдачи.",
     image: "/images/step-get-prize.png",
     alt: "Подарок, QR-код и медаль для получения приза",
   },
@@ -43,10 +43,10 @@ export default function Home() {
               id="home-heading"
               className="text-balance text-[36px] font-bold leading-10 text-[var(--color-brand-ink)] sm:text-[44px] sm:leading-[48px]"
             >
-              T-Events
+              Т-Мероприятия
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-pretty text-[15px] leading-6 text-[var(--color-brand-graphite)]">
-              Выбирайте образовательные мероприятия, проходите игровые задания и забирайте призы за результат.
+              Вы здесь, потому что любите крутые призы! Проявляйте себя, участвуя в играх, и получайте награды за баллы.
             </p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Link

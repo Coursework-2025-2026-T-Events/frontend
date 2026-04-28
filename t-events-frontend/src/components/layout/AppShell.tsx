@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { LogOut, Menu, X } from "lucide-react";
 import Container from "@/components/ui/Container";
@@ -28,11 +29,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isStander = user?.role === "stander" || user?.role === "admin";
   const isAdmin = user?.role === "admin";
 
-  const participantLinks = (
+  const roleLinks = (
     <>
-      <Link href={routes.events} className={navLinkClassName}>
-        Мероприятия
-      </Link>
       {user?.role === "participant" && (
         <Link href={routes.currentParticipation} className={navLinkClassName}>
           Текущее участие
@@ -64,15 +62,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-9">
               <Link
                 href="/"
-                aria-label="T-Events"
-                className="flex h-[34px] w-[29px] items-center justify-center rounded-[var(--radius-md)] outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]"
+                aria-label="Т-Мероприятия"
+                className="flex h-[34px] w-[29px] items-center justify-center outline-none transition-opacity hover:opacity-85 focus-visible:rounded-[var(--radius-md)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]"
               >
-                <span className="flex h-[34px] w-[29px] items-center justify-center rounded-b-[10px] rounded-t-sm bg-[var(--color-brand-yellow)] text-base font-bold leading-6 text-[var(--color-brand-ink)]">
-                  T
-                </span>
+                <Image
+                  src="/images/tbank-logo.svg"
+                  alt="Т-Банк"
+                  width={29}
+                  height={34}
+                  priority
+                  className="h-[34px] w-[29px]"
+                />
               </Link>
 
-              <nav className="hidden items-center gap-8 lg:flex">{participantLinks}</nav>
+              <nav className="hidden items-center gap-8 lg:flex">{roleLinks}</nav>
             </div>
 
             <nav className="hidden items-center gap-6 lg:flex">
@@ -127,9 +130,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div id="mobile-menu" className="bg-white shadow-[var(--shadow-card)] lg:hidden">
             <Container>
               <nav className="flex flex-col gap-2 py-4">
-                <Link href={routes.events} onClick={closeMenu} className={mobileNavLinkClassName}>
-                  Мероприятия
-                </Link>
                 {user?.role === "participant" && (
                   <Link href={routes.currentParticipation} onClick={closeMenu} className={mobileNavLinkClassName}>
                     Текущее участие
