@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Loader2, X } from "lucide-react";
 import { useParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Container from "@/components/ui/Container";
@@ -202,20 +202,18 @@ export default function GameSessionPage() {
     }) => {
       return eventsApi.submitAnswer(eventId, directionId, eventGameId, submitRequest.sessionId, submitRequest.payload);
     },
-    onSuccess: (response, submitRequest) => {
+    onSuccess: (response) => {
       setAnswerText("");
       setSelectedOptionId(null);
-      setOptimisticQuestionIndex(submitRequest.questionIndex);
+      setOptimisticQuestionIndex(null);
       queryClient.setQueryData(sessionStateQueryKey, {
         data: {
           session_id: response.data.session_id,
           status: response.data.status,
           progress: response.data.progress,
           navigation: response.data.navigation,
-          questions: response.data.questions,
-          current_question:
-            getQuestionByIndex(response.data.questions, response.data.navigation, submitRequest.questionIndex) ??
-            response.data.next_question,
+          questions: response.data.questions ?? [],
+          current_question: response.data.next_question,
         },
       });
 
@@ -264,23 +262,15 @@ export default function GameSessionPage() {
     });
   }
   if (submitAnswerMutation.data?.data) {
-    const submittedQuestionIndex = submitAnswerMutation.variables?.questionIndex ?? null;
-    const currentQuestionFromResponse =
-      getQuestionByIndex(
-        submitAnswerMutation.data.data.questions,
-        submitAnswerMutation.data.data.navigation,
-        submittedQuestionIndex
-      ) ?? submitAnswerMutation.data.data.next_question;
-
     stateCandidates.push({
       timestamp: submitAnswerMutation.submittedAt,
       state: {
         session_id: submitAnswerMutation.data.data.session_id,
         status: submitAnswerMutation.data.data.status,
         progress: submitAnswerMutation.data.data.progress,
-        navigation: markCurrentNavigationItem(submitAnswerMutation.data.data.navigation, submittedQuestionIndex),
-        questions: submitAnswerMutation.data.data.questions,
-        current_question: currentQuestionFromResponse,
+        navigation: submitAnswerMutation.data.data.navigation,
+        questions: submitAnswerMutation.data.data.questions ?? [],
+        current_question: submitAnswerMutation.data.data.next_question,
       },
     });
   }
@@ -304,6 +294,7 @@ export default function GameSessionPage() {
   const isAnsweredQuestion = currentQuestion?.answered ?? false;
   const isCorrectAnsweredQuestion = isAnsweredQuestion && currentQuestion?.is_correct === true;
   const isWrongAnsweredQuestion = isAnsweredQuestion && currentQuestion?.is_correct === false;
+  const answerResultLabel = isCorrectAnsweredQuestion ? "Ответ верный" : isWrongAnsweredQuestion ? "Ответ неверный" : null;
   const displayedAnswerText =
     currentQuestion?.engine === "question_answer" && isAnsweredQuestion ? currentQuestion.text_answer ?? "" : answerText;
   const displayedSelectedOptionId =
@@ -450,18 +441,28 @@ export default function GameSessionPage() {
 
                       {currentQuestion.engine === "question_answer" && (
                         <div className="mt-7 max-w-2xl sm:mt-8">
-                          <Input
-                            value={displayedAnswerText}
-                            onChange={(event) => setAnswerText(event.target.value)}
-                            placeholder="Введите ответ"
-                            readOnly={isAnsweredQuestion}
-                            aria-readonly={isAnsweredQuestion}
-                            className={clsx(
-                              "h-14 text-[16px]",
-                              isCorrectAnsweredQuestion && "border-[#88d6a2] bg-[#f2fbf5] text-[#237a3b]",
-                              isWrongAnsweredQuestion && "border-[#f0a8a8] bg-[#fff5f5] text-red-700"
+                          <div className="relative">
+                            <Input
+                              value={displayedAnswerText}
+                              onChange={(event) => setAnswerText(event.target.value)}
+                              placeholder="Введите ответ"
+                              readOnly={isAnsweredQuestion}
+                              aria-readonly={isAnsweredQuestion}
+                              aria-invalid={isWrongAnsweredQuestion || undefined}
+                              aria-label={answerResultLabel ? `Ответ: ${answerResultLabel}` : "Ответ"}
+                              className={clsx(
+                                "h-14 pr-12 text-[16px]",
+                                isCorrectAnsweredQuestion && "border-[#47b86a] !bg-[#f2fbf5] text-[#1f6f36] focus:border-[#2f9d50]",
+                                isWrongAnsweredQuestion && "border-[#dc6b63] !bg-[#fff5f5] text-[#9f2f2f] focus:border-[#c73a3a]"
+                              )}
+                            />
+                            {isCorrectAnsweredQuestion && (
+                              <Check className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#237a3b]" aria-hidden />
                             )}
-                          />
+                            {isWrongAnsweredQuestion && (
+                              <X className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#c73a3a]" aria-hidden />
+                            )}
+                          </div>
                         </div>
                       )}
 

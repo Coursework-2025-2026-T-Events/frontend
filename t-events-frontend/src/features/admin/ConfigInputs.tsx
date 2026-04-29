@@ -22,7 +22,7 @@ export default function ConfigInputs({ form, setForm }: Props) {
             </Typography>
             <div className="mt-3 space-y-3">
               <Input
-                label="Вопросов выбрать"
+                label="Вопросов в игре"
                 type="number"
                 min={0}
                 value={form[pickKey]}
@@ -30,7 +30,7 @@ export default function ConfigInputs({ form, setForm }: Props) {
                 required
               />
               <Input
-                label="Баллы за уровень"
+                label="Баллов за ответ"
                 type="number"
                 min={0}
                 value={form[scoreKey]}
