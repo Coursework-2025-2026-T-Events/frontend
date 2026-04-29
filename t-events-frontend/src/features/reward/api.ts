@@ -18,6 +18,10 @@ export type RedemptionListFilters = {
   offset?: number;
 };
 
+export type RedemptionTokenRequest =
+  | { signed_token: string; redeem_code?: never }
+  | { redeem_code: string; signed_token?: never };
+
 export const rewardApi = {
   /** GET /api/v1/me/events/{event_id}/directions/{direction_id}/reward-status */
   getRewardStatus: (eventId: number, directionId: number) =>
@@ -36,16 +40,12 @@ export const rewardApi = {
     api.get<EventRedemptionResponse>(`/me/events/${eventId}/redemption`),
 
   /** POST /api/v1/stander/redemptions/preview */
-  previewRedemption: (signedToken: string) =>
-    api.post<RedemptionPreviewResponse>("/stander/redemptions/preview", {
-      signed_token: signedToken,
-    }),
+  previewRedemption: (payload: RedemptionTokenRequest) =>
+    api.post<RedemptionPreviewResponse>("/stander/redemptions/preview", payload),
 
   /** POST /api/v1/stander/redemptions */
-  confirmRedemption: (signedToken: string) =>
-    api.post<RewardRedemptionResponse>("/stander/redemptions", {
-      signed_token: signedToken,
-    }),
+  confirmRedemption: (payload: RedemptionTokenRequest) =>
+    api.post<RewardRedemptionResponse>("/stander/redemptions", payload),
 
   /** GET /api/v1/stander/events/{event_id}/redemptions */
   listEventRedemptions: (eventId: number, filters: RedemptionListFilters = {}) => {

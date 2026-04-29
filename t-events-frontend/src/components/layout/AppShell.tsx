@@ -11,8 +11,8 @@ import { routes } from "@/lib/routes";
 
 const roleLabels: Record<UserRole, string> = {
   participant: "участник",
-  stander: "стойка",
-  admin: "админ",
+  stander: "сотрудник стойки",
+  admin: "администратор",
 };
 
 const navLinkClassName =
@@ -34,16 +34,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {isStander && (
         <>
           <Link href={routes.standerScan} className={navLinkClassName}>
-            Сканер QR
+            Сканирование
           </Link>
           <Link href={routes.standerInventory} className={navLinkClassName}>
-            Выдачи
+            Журнал выдачи
           </Link>
         </>
       )}
       {isAdmin && (
         <Link href={routes.adminEvents} className={navLinkClassName}>
-          Админка
+          Админ-панель
         </Link>
       )}
     </>
@@ -128,16 +128,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 {isStander && (
                   <>
                     <Link href={routes.standerScan} onClick={closeMenu} className={mobileNavLinkClassName}>
-                      Сканер QR
+                      Сканирование
                     </Link>
                     <Link href={routes.standerInventory} onClick={closeMenu} className={mobileNavLinkClassName}>
-                      Выдачи
+                      Журнал выдачи
                     </Link>
                   </>
                 )}
                 {isAdmin && (
                   <Link href={routes.adminEvents} onClick={closeMenu} className={mobileNavLinkClassName}>
-                    Админка
+                    Админ-панель
                   </Link>
                 )}
                 {user ? (

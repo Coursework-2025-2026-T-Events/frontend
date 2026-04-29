@@ -21,7 +21,9 @@ export type EventStatus = "draft" | "published" | "active" | "finished" | "archi
 export type DirectionDTO = {
   direction_id: number;
   name: string;
+  description?: string | null;
   event_id?: number;
+  game_count?: number;
 };
 
 export type GameStatus = "not_started" | "in_progress" | "completed";
@@ -122,7 +124,6 @@ export type NavigationItemDTO = {
   question_index: number;
   question_id: number;
   answered: boolean;
-  is_correct?: boolean;
   is_current: boolean;
 };
 
@@ -137,7 +138,7 @@ export type StartOrResumeSessionDTO = {
   };
   progress: StepBasedProgressDTO;
   navigation: NavigationItemDTO[];
-  questions: CurrentQuestionDTO[];
+  questions?: CurrentQuestionDTO[];
   current_question: CurrentQuestionDTO | null;
 };
 
@@ -146,7 +147,7 @@ export type SessionStateDTO = {
   status: SessionStatus;
   progress: StepBasedProgressDTO;
   navigation: NavigationItemDTO[];
-  questions: CurrentQuestionDTO[];
+  questions?: CurrentQuestionDTO[];
   current_question: CurrentQuestionDTO | null;
 };
 
@@ -164,7 +165,7 @@ export type SubmitAnswerDTO = {
   direction_summary: DirectionProgressSummaryDTO;
   next_question: CurrentQuestionDTO | null;
   navigation: NavigationItemDTO[];
-  questions: CurrentQuestionDTO[];
+  questions?: CurrentQuestionDTO[];
 };
 
 // ─── Sprint 3 ────────────────────────────────────────────────────────────────
@@ -201,6 +202,7 @@ export type RewardQrDTO = {
   issued_at: string;
   expires_at: string;
   signed_token: string;
+  redeem_code: string;
 };
 
 export type RedemptionPreviewDTO = {
@@ -297,17 +299,18 @@ export type TemplateQuestionStatsDTO = Record<Difficulty, number> & {
   total: number;
 };
 
+export type EventGameConfigDTO = {
+  questions_to_pick: Record<Difficulty, number>;
+  score_by_level: Record<Difficulty, number>;
+};
+
 export type GameTemplateDTO = {
   game_template_id: number;
   title: string;
   description: string;
   engine: GameEngine;
   question_stats: TemplateQuestionStatsDTO;
-};
-
-export type EventGameConfigDTO = {
-  questions_to_pick: Record<Difficulty, number>;
-  score_by_level: Record<Difficulty, number>;
+  recommended_config?: EventGameConfigDTO;
 };
 
 export type CreateEventGameRequest = {
@@ -323,13 +326,55 @@ export type AdminEventGameDTO = {
   event_game_id: number;
   event_id: number;
   direction_id: number;
+  direction_name: string;
   game_template_id: number;
+  template_title: string;
   title: string;
-  description: string;
+  description?: string;
   engine: GameEngine;
   config: EventGameConfigDTO;
   max_score: number;
   steps_total: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type PublishIssueSection = "details" | "directions" | "games" | "publish";
+
+export type PublishReadinessIssueDTO = {
+  code: string;
+  message: string;
+  section: PublishIssueSection;
+  field?: string;
+};
+
+export type PublishCheckDTO = {
+  publishable: boolean;
+  issues: PublishReadinessIssueDTO[];
+};
+
+export type AdminEventDirectionDTO = DirectionDTO & {
+  event_id: number;
+  game_count?: number;
+};
+
+export type AdminEventSettingsDTO = {
+  event: AdminEventDTO;
+  directions: AdminEventDirectionDTO[];
+  games: AdminEventGameDTO[];
+  readiness: {
+    schedule: boolean;
+    rewards: boolean;
+    directions: boolean;
+    games: boolean;
+    publishable: boolean;
+    issues: PublishReadinessIssueDTO[];
+  };
+};
+
+export type DeleteEventGameDTO = {
+  event_game_id: number;
+  deleted: true;
 };
 
 export type RedemptionListEntryDTO = {
@@ -379,9 +424,14 @@ export type EventRedemptionResponse = ApiResponse<EventRedemptionDTO>;
 
 export type AdminEventsResponse = ApiResponse<AdminEventDTO[]>;
 export type AdminEventResponse = ApiResponse<AdminEventDTO>;
+export type AdminDirectionsResponse = ApiResponse<DirectionDTO[]>;
+export type AdminEventSettingsResponse = ApiResponse<AdminEventSettingsDTO>;
 export type AddDirectionResponse = ApiResponse<EventDirectionLinkDTO>;
 export type RemoveDirectionResponse = ApiResponse<EventDirectionLinkDTO>;
 export type ArchiveEventResponse = ApiResponse<ArchiveEventDTO>;
+export type PublishCheckResponse = ApiResponse<PublishCheckDTO>;
 export type GameTemplatesResponse = ApiResponse<GameTemplateDTO[]>;
+export type AdminEventGamesResponse = ApiResponse<AdminEventGameDTO[]>;
 export type AdminEventGameResponse = ApiResponse<AdminEventGameDTO>;
+export type DeleteEventGameResponse = ApiResponse<DeleteEventGameDTO>;
 export type RedemptionListResponse = ApiResponse<RedemptionListPageDTO>;

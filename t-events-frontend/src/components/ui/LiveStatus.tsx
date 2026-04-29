@@ -1,7 +1,7 @@
 import clsx from "clsx";
 
 type Props = {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   centered?: boolean;
   busy?: boolean;

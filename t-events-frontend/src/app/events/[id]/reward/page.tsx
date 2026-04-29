@@ -326,6 +326,12 @@ export default function RewardPage() {
                           <div className="mt-5 flex justify-center">
                             <QrCodeDisplay value={qrPayload} token={visibleQr.signed_token} expiresAt={visibleQr.expires_at} />
                           </div>
+                          <div className="mt-5 rounded-[var(--radius-md)] bg-[var(--color-brand-panel)] px-4 py-3">
+                            <p className="text-[13px] leading-4 text-[var(--color-brand-muted)]">Ручной код</p>
+                            <p className="mt-1 font-mono text-[22px] font-bold leading-7 tracking-[0.08em] text-[var(--color-brand-ink)]">
+                              {visibleQr.redeem_code}
+                            </p>
+                          </div>
                         </div>
                     ) : (
                       <div>

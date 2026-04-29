@@ -59,8 +59,6 @@ function formatPointsLabel(points: number) {
 function getNavigationItemState(item: NavigationItemDTO) {
   if (item.is_current) return "current";
   if (!item.answered) return "skipped";
-  if (item.is_correct === false) return "wrong";
-  if (item.is_correct === true) return "correct";
   return "answered";
 }
 
@@ -86,6 +84,12 @@ function getQuestionByIndex(questions: CurrentQuestionDTO[], navigation: Navigat
   }
 
   return questions[questionIndex - 1] ?? null;
+}
+
+function getCurrentQuestionFromSnapshot(questions: CurrentQuestionDTO[], navigation: NavigationItemDTO[]) {
+  const currentItem = navigation.find((item) => item.is_current);
+  if (!currentItem) return null;
+  return questions.find((question) => question.question_id === currentItem.question_id) ?? null;
 }
 
 function toRuntimeState(source: StartOrResumeSessionDTO | SessionStateDTO): RuntimeState {
@@ -131,9 +135,7 @@ function QuestionNavigation({ disabled, items, onSelect, variant = "grid" }: Que
                 "flex h-10 min-w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[15px] font-normal outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--color-brand-black)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70",
                 itemState === "current" && "bg-[var(--color-brand-yellow)] text-[var(--color-brand-ink)] shadow-[0_2px_0_rgba(16,17,20,0.08)]",
                 itemState === "skipped" && "bg-[#e7e9ee] text-[var(--color-brand-muted)] hover:bg-[#dde0e6]",
-                itemState === "answered" && "bg-[#e7e9ee] text-[var(--color-brand-muted)] hover:bg-[#dde0e6]",
-                itemState === "correct" && "bg-[#dff4e8] text-[#159947] hover:bg-[#d3eedf]",
-                itemState === "wrong" && "bg-[#fde7e7] text-[#c73a3a] hover:bg-[#fbdada]"
+                itemState === "answered" && "bg-[#dff4e8] text-[#159947] hover:bg-[#d3eedf]"
               )}
               onClick={() => onSelect(item)}
             >
@@ -206,14 +208,16 @@ export default function GameSessionPage() {
       setAnswerText("");
       setSelectedOptionId(null);
       setOptimisticQuestionIndex(null);
+      const questions = response.data.questions ?? [];
+      const currentQuestion = getCurrentQuestionFromSnapshot(questions, response.data.navigation);
       queryClient.setQueryData(sessionStateQueryKey, {
         data: {
           session_id: response.data.session_id,
           status: response.data.status,
           progress: response.data.progress,
           navigation: response.data.navigation,
-          questions: response.data.questions ?? [],
-          current_question: response.data.next_question,
+          questions,
+          current_question: currentQuestion,
         },
       });
 
@@ -270,7 +274,10 @@ export default function GameSessionPage() {
         progress: submitAnswerMutation.data.data.progress,
         navigation: submitAnswerMutation.data.data.navigation,
         questions: submitAnswerMutation.data.data.questions ?? [],
-        current_question: submitAnswerMutation.data.data.next_question,
+        current_question: getCurrentQuestionFromSnapshot(
+          submitAnswerMutation.data.data.questions ?? [],
+          submitAnswerMutation.data.data.navigation
+        ),
       },
     });
   }
