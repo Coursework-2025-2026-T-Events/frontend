@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Archive, CalendarClock, CheckCircle2, CircleDashed, Gamepad2, Map, Plus, Search } from "lucide-react";
+import { Archive, CalendarClock, CheckCircle2, CircleDashed, FileClock, Gamepad2, Map, Plus, Search } from "lucide-react";
 import clsx from "clsx";
 import Button from "@/components/ui/Button";
 import Container from "@/components/ui/Container";
@@ -16,6 +16,7 @@ import { adminApi } from "@/features/admin/api";
 import RequireAuth from "@/features/auth/RequireAuth";
 import type { AdminEventDTO, EventStatus } from "@/lib/api/types";
 import { getErrorMessage } from "@/lib/getErrorMessage";
+import { queryKeys } from "@/lib/queryKeys";
 import { routes } from "@/lib/routes";
 
 const initialForm = { title: "" };
@@ -72,7 +73,7 @@ export default function AdminEventsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | EventStatus>("all");
 
   const eventsQuery = useQuery({
-    queryKey: ["admin", "events"],
+    queryKey: queryKeys.admin.events,
     queryFn: adminApi.listEvents,
   });
 
@@ -96,7 +97,7 @@ export default function AdminEventsPage() {
     mutationFn: () => adminApi.createEvent({ title: form.title.trim() }),
     onSuccess: (res) => {
       setForm(initialForm);
-      queryClient.invalidateQueries({ queryKey: ["admin", "events"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.events });
       router.push(routes.adminEvent(res.data.event_id));
     },
   });
@@ -204,6 +205,11 @@ function MobileAdminEvents(props: EventsViewProps) {
           <MobileStat label="Активные" value={props.activeEvents} />
           <MobileStat label="Черновики" value={props.draftEvents} />
         </div>
+
+        <Button href={routes.adminAuditLogs} variant="secondary" className="mt-3 min-h-10 w-full gap-2 text-[14px]">
+          <FileClock className="h-4 w-4" aria-hidden />
+          Журнал аудита
+        </Button>
       </section>
 
       {isCreateOpen && (
@@ -255,16 +261,23 @@ function DesktopAdminEvents(props: EventsViewProps) {
   return (
     <div className="hidden py-10 lg:block">
       <section className="rounded-[var(--radius-lg)] bg-white p-8 shadow-[var(--shadow-card)]">
-        <div className="max-w-3xl">
-          <span className="inline-flex rounded-full bg-[var(--color-brand-yellow)] px-3 py-1 text-[13px] font-medium leading-[18px] text-[var(--color-brand-ink)]">
-            Администрирование
-          </span>
-          <h1 className="mt-4 text-[40px] font-bold leading-[44px] text-[var(--color-brand-ink)]">
-            Управление мероприятиями
-          </h1>
-          <p className="mt-3 text-[15px] leading-6 text-[var(--color-brand-graphite)]">
-            Создавайте черновики, проверяйте готовность направлений и быстро переходите к настройке публикации.
-          </p>
+        <div className="flex items-start justify-between gap-6">
+          <div className="max-w-3xl">
+            <span className="inline-flex rounded-full bg-[var(--color-brand-yellow)] px-3 py-1 text-[13px] font-medium leading-[18px] text-[var(--color-brand-ink)]">
+              Администрирование
+            </span>
+            <h1 className="mt-4 text-[40px] font-bold leading-[44px] text-[var(--color-brand-ink)]">
+              Управление мероприятиями
+            </h1>
+            <p className="mt-3 text-[15px] leading-6 text-[var(--color-brand-graphite)]">
+              Создавайте черновики, проверяйте готовность направлений и быстро переходите к настройке публикации.
+            </p>
+          </div>
+
+          <Button href={routes.adminAuditLogs} variant="secondary" className="shrink-0 gap-2">
+            <FileClock className="h-4 w-4" aria-hidden />
+            Журнал аудита
+          </Button>
         </div>
 
         <div className="mt-6 grid grid-cols-4 gap-3">

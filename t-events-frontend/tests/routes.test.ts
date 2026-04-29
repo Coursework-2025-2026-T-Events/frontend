@@ -14,6 +14,7 @@ test("builds participant event routes", () => {
 
 test("builds admin and staff routes", () => {
   assert.equal(routes.adminEvents, "/admin/events");
+  assert.equal(routes.adminAuditLogs, "/admin/audit-logs");
   assert.equal(routes.adminEvent(9), "/admin/events/9");
   assert.equal(routes.standerScan, "/stander/scan");
   assert.equal(routes.standerInventory, "/stander/inventory");

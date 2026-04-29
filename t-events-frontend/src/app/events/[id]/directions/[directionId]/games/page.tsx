@@ -218,7 +218,7 @@ function DirectionActionStrip({
 }: {
   directionId: number;
   eventId: number;
-  summary?: DirectionProgressSummaryDTO;
+  summary?: DirectionProgressSummaryDTO | undefined;
 }) {
   const rewardUnlocked = Boolean(summary?.small_reward_unlocked || summary?.big_reward_unlocked);
   const rewardText = summary

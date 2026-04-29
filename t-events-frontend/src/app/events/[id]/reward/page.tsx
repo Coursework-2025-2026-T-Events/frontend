@@ -48,8 +48,8 @@ function RewardHero({
   isGeneratingQr,
   onGenerateQr,
 }: {
-  directionName?: string;
-  eligibility?: RewardEligibilityDTO;
+  directionName?: string | undefined;
+  eligibility?: RewardEligibilityDTO | undefined;
   canGenerateQr: boolean;
   hasQr: boolean;
   isGeneratingQr: boolean;

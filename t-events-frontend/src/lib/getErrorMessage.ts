@@ -6,7 +6,7 @@ export type ErrorPresentation = {
   retryable: boolean;
 };
 
-const API_ERROR_PRESENTATIONS: Record<string, ErrorPresentation> = {
+const API_ERROR_PRESENTATIONS = {
   http_error: {
     title: "Ошибка запроса",
     message: "Сервер вернул ошибку. Попробуйте повторить действие.",
@@ -141,7 +141,7 @@ const API_ERROR_PRESENTATIONS: Record<string, ErrorPresentation> = {
     message: "Срок действия QR-кода истёк. Сгенерируйте новый.",
     retryable: false,
   },
-};
+} satisfies Record<string, ErrorPresentation>;
 
 const MESSAGE_TRANSLATIONS: Record<string, string> = {
   "Unknown API Error": "Сервер вернул ошибку без описания.",
@@ -160,6 +160,16 @@ const MESSAGE_TRANSLATIONS: Record<string, string> = {
   "Email already registered": "Эта электронная почта уже зарегистрирована.",
 };
 
+function presentation(code: keyof typeof API_ERROR_PRESENTATIONS): ErrorPresentation {
+  return API_ERROR_PRESENTATIONS[code];
+}
+
+function findPresentation(code: string): ErrorPresentation | undefined {
+  return Object.hasOwn(API_ERROR_PRESENTATIONS, code)
+    ? API_ERROR_PRESENTATIONS[code as keyof typeof API_ERROR_PRESENTATIONS]
+    : undefined;
+}
+
 const ENGLISH_LETTER_PATTERN = /[A-Za-z]/;
 const CYRILLIC_LETTER_PATTERN = /[А-Яа-яЁё]/;
 
@@ -172,18 +182,18 @@ export function localizeErrorText(message: string, fallback: string): string {
 }
 
 function getStatusPresentation(error: ApiError, fallback: string): ErrorPresentation {
-  if (error.status === 401) return API_ERROR_PRESENTATIONS.unauthorized;
-  if (error.status === 403) return API_ERROR_PRESENTATIONS.forbidden;
-  if (error.status === 404) return API_ERROR_PRESENTATIONS.not_found;
-  if (error.status === 409) return API_ERROR_PRESENTATIONS.conflict;
-  if (error.status === 400 || error.status === 422) return API_ERROR_PRESENTATIONS.validation_error;
-  if (error.status >= 500) return API_ERROR_PRESENTATIONS.internal_error;
+  if (error.status === 401) return presentation("unauthorized");
+  if (error.status === 403) return presentation("forbidden");
+  if (error.status === 404) return presentation("not_found");
+  if (error.status === 409) return presentation("conflict");
+  if (error.status === 400 || error.status === 422) return presentation("validation_error");
+  if (error.status >= 500) return presentation("internal_error");
   return { title: "Ошибка", message: localizeErrorText(error.message, fallback), retryable: false };
 }
 
 export function getErrorPresentation(error: unknown, fallback: string): ErrorPresentation {
   if (error instanceof ApiError) {
-    return API_ERROR_PRESENTATIONS[error.code] ?? getStatusPresentation(error, fallback);
+    return findPresentation(error.code) ?? getStatusPresentation(error, fallback);
   }
   if (error instanceof Error) {
     const message = localizeErrorText(error.message, fallback);

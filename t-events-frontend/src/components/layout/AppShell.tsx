@@ -42,9 +42,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </>
       )}
       {isAdmin && (
-        <Link href={routes.adminEvents} className={navLinkClassName}>
-          Админ-панель
-        </Link>
+        <>
+          <Link href={routes.adminEvents} className={navLinkClassName}>
+            Админ-панель
+          </Link>
+          <Link href={routes.adminAuditLogs} className={navLinkClassName}>
+            Журнал аудита
+          </Link>
+        </>
       )}
     </>
   );
@@ -136,9 +141,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   </>
                 )}
                 {isAdmin && (
-                  <Link href={routes.adminEvents} onClick={closeMenu} className={mobileNavLinkClassName}>
-                    Админ-панель
-                  </Link>
+                  <>
+                    <Link href={routes.adminEvents} onClick={closeMenu} className={mobileNavLinkClassName}>
+                      Админ-панель
+                    </Link>
+                    <Link href={routes.adminAuditLogs} onClick={closeMenu} className={mobileNavLinkClassName}>
+                      Журнал аудита
+                    </Link>
+                  </>
                 )}
                 {user ? (
                   <>

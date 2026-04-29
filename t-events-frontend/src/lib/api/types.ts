@@ -345,7 +345,7 @@ export type PublishReadinessIssueDTO = {
   code: string;
   message: string;
   section: PublishIssueSection;
-  field?: string;
+  field?: string | undefined;
 };
 
 export type PublishCheckDTO = {
@@ -399,11 +399,38 @@ export type RedemptionListPageDTO = {
   items: RedemptionListEntryDTO[];
 };
 
+export type AuditAction =
+  | "admin.event.create"
+  | "admin.event.update"
+  | "admin.event.schedule_update"
+  | "admin.event.direction_add"
+  | "admin.event.direction_remove"
+  | "admin.event.publish"
+  | "admin.event.archive"
+  | "admin.event_game.create"
+  | "admin.event_game.update"
+  | "admin.event_game.delete"
+  | "reward.redemption.create";
+
+export type AuditEntityType = "event" | "direction" | "event_game" | "reward_redemption";
+
+export type AuditLogExportQuery = {
+  actor_user_id?: number;
+  event_id?: number;
+  action?: AuditAction | string;
+  entity_type?: AuditEntityType | string;
+  from?: string;
+  to?: string;
+  limit?: number;
+  offset?: number;
+};
+
 export type ApiResponse<T> = { data: T };
 
 export type RegisterResponse = ApiResponse<{ access_token: string; user: UserDTO }>;
 export type LoginResponse = ApiResponse<{ access_token: string; user: UserDTO }>;
 export type RefreshResponse = ApiResponse<{ access_token: string }>;
+export type LogoutResponse = ApiResponse<{ logged_out: true }>;
 export type UserResponse = ApiResponse<UserDTO>;
 export type EventResponse = ApiResponse<EventDTO>;
 export type EventsResponse = ApiResponse<EventDTO[]>;

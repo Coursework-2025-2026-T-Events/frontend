@@ -7,6 +7,9 @@ import { AuthProvider } from "@/features/auth/AuthProvider";
 export const metadata: Metadata = {
   title: "Т-Мероприятия",
   description: "Клиентская часть Т-Мероприятий",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

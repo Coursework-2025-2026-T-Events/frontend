@@ -5,11 +5,11 @@ import Typography from "./Typography";
 
 type Props = {
   title: string;
-  description?: string;
-  actionLabel?: string;
-  actionHref?: string;
-  onAction?: () => void;
-  className?: string;
+  description?: string | undefined;
+  actionLabel?: string | undefined;
+  actionHref?: string | undefined;
+  onAction?: (() => void) | undefined;
+  className?: string | undefined;
 };
 
 export default function EmptyState({ title, description, actionLabel, actionHref, onAction, className }: Props) {
@@ -23,8 +23,9 @@ export default function EmptyState({ title, description, actionLabel, actionHref
           {description}
         </Typography>
       )}
-      {actionLabel && (actionHref || onAction) && (
-        <Button className="mt-4" href={actionHref} onClick={onAction}>
+      {actionLabel && actionHref && <Button className="mt-4" href={actionHref}>{actionLabel}</Button>}
+      {actionLabel && !actionHref && onAction && (
+        <Button className="mt-4" type="button" onClick={onAction}>
           {actionLabel}
         </Button>
       )}

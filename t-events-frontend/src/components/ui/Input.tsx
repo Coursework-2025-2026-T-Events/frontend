@@ -2,8 +2,8 @@ import clsx from "clsx";
 import { useId } from "react";
 
 type Props = React.InputHTMLAttributes<HTMLInputElement> & {
-  label?: string;
-  error?: string;
+  label?: string | undefined;
+  error?: string | undefined;
 };
 
 export default function Input({ label, error, className, id, ...props }: Props) {

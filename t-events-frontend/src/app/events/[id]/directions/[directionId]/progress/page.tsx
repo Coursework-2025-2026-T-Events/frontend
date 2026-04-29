@@ -62,7 +62,7 @@ function LeaderboardSkeleton() {
   );
 }
 
-function LeaderboardHero({ directionName }: { directionName?: string }) {
+function LeaderboardHero({ directionName }: { directionName?: string | undefined }) {
   return (
     <section className="overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-card)]">
       <div>

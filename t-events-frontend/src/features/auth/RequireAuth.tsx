@@ -15,10 +15,11 @@ type RequireAuthProps = {
 };
 
 export default function RequireAuth({ children, allowedRoles }: RequireAuthProps) {
-    const { user, isBootstrapping } = useAuth();
+    const { user, status } = useAuth();
     const router = useRouter();
     const accessDeniedRedirectPath = routes.accessDeniedEvents;
-    const isAuthenticated = !!user;
+    const isBootstrapping = status === "refreshing" || status === "logout_in_progress";
+    const isAuthenticated = status === "authenticated";
     const isRoleAuthorized = useMemo(() => {
         if (!user) return false;
         return isRoleAllowed(user.role, allowedRoles);

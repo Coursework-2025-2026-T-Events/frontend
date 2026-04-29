@@ -1,6 +1,6 @@
 export type ParticipationMeta = {
-  eventTitle?: string;
-  directionName?: string;
+  eventTitle?: string | undefined;
+  directionName?: string | undefined;
 };
 
 export type ParticipationSnapshot = {

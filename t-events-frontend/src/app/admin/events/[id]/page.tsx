@@ -17,9 +17,11 @@ import Typography from "@/components/ui/Typography";
 import { adminApi } from "@/features/admin/api";
 import ArchivePanel from "@/features/admin/ArchivePanel";
 import ConfigInputs from "@/features/admin/ConfigInputs";
+import ConfirmationDialog, { type ConfirmDialogState } from "@/features/admin/ConfirmationDialog";
 import { getChangedEventFieldLabels, hasEventFormChanges, hasScheduleChanges } from "@/features/admin/eventForm";
 import { defaultConfigForm } from "@/features/admin/gameConfig";
 import { difficulties, difficultyLabels, engineLabels, publishFieldLabels, statusLabels } from "@/features/admin/labels";
+import SettingsTabButton, { type AdminEventSettingsTab, type AdminEventSettingsTabItem } from "@/features/admin/SettingsTabButton";
 import RequireAuth from "@/features/auth/RequireAuth";
 import { ApiError } from "@/lib/api/client";
 import type {
@@ -32,6 +34,7 @@ import type {
   TemplateQuestionStatsDTO,
 } from "@/lib/api/types";
 import { getErrorMessage, localizeErrorText } from "@/lib/getErrorMessage";
+import { queryKeys } from "@/lib/queryKeys";
 import { routes } from "@/lib/routes";
 
 const emptyEventForm = {
@@ -60,7 +63,7 @@ const timezoneOptions = [
 
 type EventFormField = keyof typeof emptyEventForm;
 type EventFieldErrors = Partial<Record<EventFormField, string>>;
-type EventSettingsTab = "details" | "directions" | "games" | "publish";
+type EventSettingsTab = AdminEventSettingsTab;
 type LocalDateTimeParts = {
   year: number;
   month: number;
@@ -68,15 +71,6 @@ type LocalDateTimeParts = {
   hour: number;
   minute: number;
 };
-type ConfirmDialogState =
-  | {
-      title: string;
-      message: string;
-      confirmLabel: string;
-      tone?: "danger" | "primary";
-      onConfirm: () => void;
-    }
-  | null;
 
 function hasFieldErrors(errors: EventFieldErrors): boolean {
   return Object.values(errors).some(Boolean);
@@ -220,15 +214,23 @@ function toOptionalNumber(value: string, label: string): number | undefined {
 }
 
 function toPatchComparable(form: typeof emptyEventForm): AdminEventPatchRequest {
-  return {
+  const patch: AdminEventPatchRequest = {
     title: form.title.trim(),
     description: form.description.trim(),
-    start_time: toComparableDateTime(form.start_time, form.timezone),
-    end_time: toComparableDateTime(form.end_time, form.timezone),
-    timezone: form.timezone.trim() || undefined,
-    small_reward_percent: toOptionalNumber(form.small_reward_percent, "Порог малого приза"),
-    big_reward_percent: toOptionalNumber(form.big_reward_percent, "Порог большого приза"),
   };
+  const startTime = toComparableDateTime(form.start_time, form.timezone);
+  const endTime = toComparableDateTime(form.end_time, form.timezone);
+  const timezone = form.timezone.trim();
+  const smallRewardPercent = toOptionalNumber(form.small_reward_percent, "Порог малого приза");
+  const bigRewardPercent = toOptionalNumber(form.big_reward_percent, "Порог большого приза");
+
+  if (startTime !== undefined) patch.start_time = startTime;
+  if (endTime !== undefined) patch.end_time = endTime;
+  if (timezone) patch.timezone = timezone;
+  if (smallRewardPercent !== undefined) patch.small_reward_percent = smallRewardPercent;
+  if (bigRewardPercent !== undefined) patch.big_reward_percent = bigRewardPercent;
+
+  return patch;
 }
 
 function toPatchPayload(form: typeof emptyEventForm, loaded: typeof emptyEventForm): AdminEventPatchRequest {
@@ -388,18 +390,18 @@ export default function AdminEventDetailPage() {
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
   const eventQuery = useQuery({
-    queryKey: ["admin", "event-settings", eventId],
+    queryKey: queryKeys.admin.eventSettings(eventId),
     queryFn: () => adminApi.getEventSettings(eventId),
     enabled: Number.isFinite(eventId),
   });
 
   const templatesQuery = useQuery({
-    queryKey: ["admin", "game-templates", templateEngine],
+    queryKey: queryKeys.admin.gameTemplates(templateEngine),
     queryFn: () => adminApi.listGameTemplates(templateEngine === "all" ? undefined : templateEngine),
   });
 
   const adminDirectionsQuery = useQuery({
-    queryKey: ["admin", "directions"],
+    queryKey: queryKeys.admin.directions,
     queryFn: () => adminApi.listDirections({ limit: 100 }),
   });
 
@@ -467,9 +469,9 @@ export default function AdminEventDetailPage() {
   };
 
   const invalidateEvent = () => {
-    queryClient.invalidateQueries({ queryKey: ["admin", "event-settings", eventId] });
-    queryClient.invalidateQueries({ queryKey: ["admin", "events"] });
-    queryClient.invalidateQueries({ queryKey: ["admin", "directions"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.admin.eventSettings(eventId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.admin.events });
+    queryClient.invalidateQueries({ queryKey: queryKeys.admin.directions });
   };
 
   const patchEventMutation = useMutation({
@@ -803,7 +805,7 @@ export default function AdminEventDetailPage() {
     : lastSavedAt
       ? `Сохранено ${lastSavedAt.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`
       : "Изменения сохраняются вручную.";
-  const tabs: Array<{ id: EventSettingsTab; label: string; hint: string; badge?: string | number; hasIssue?: boolean }> = [
+  const tabs: AdminEventSettingsTabItem[] = [
     {
       id: "details",
       label: "Основное",
@@ -854,7 +856,8 @@ export default function AdminEventDetailPage() {
           : event.key === "ArrowRight"
             ? (currentIndex + 1) % tabIds.length
             : (currentIndex - 1 + tabIds.length) % tabIds.length;
-    setActiveTab(tabIds[nextIndex]);
+    const nextTab = tabIds[nextIndex];
+    if (nextTab) setActiveTab(nextTab);
   };
 
   const renderEventGame = (game: AdminEventGameDTO) => (
@@ -1445,112 +1448,5 @@ export default function AdminEventDetailPage() {
         />
       </div>
     </RequireAuth>
-  );
-}
-
-function SettingsTabButton({
-  tab,
-  isActive,
-  onKeyDown,
-  onSelect,
-}: {
-  tab: { id: EventSettingsTab; label: string; hint: string; badge?: string | number; hasIssue?: boolean };
-  isActive: boolean;
-  onKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      id={`settings-tab-${tab.id}`}
-      type="button"
-      role="tab"
-      aria-selected={isActive}
-      aria-controls={`settings-panel-${tab.id}`}
-      tabIndex={isActive ? 0 : -1}
-      onClick={onSelect}
-      onKeyDown={onKeyDown}
-      className={clsx(
-        "min-h-[56px] w-[172px] shrink-0 rounded-[var(--radius-md)] px-4 py-2 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--color-brand-yellow)]",
-        isActive
-          ? "bg-[var(--color-brand-ink)] text-white shadow-sm"
-          : "bg-[var(--color-brand-panel)] text-[var(--color-brand-graphite)] hover:bg-[#e7e9ee]"
-      )}
-    >
-      <span className="flex items-center gap-2 text-[14px] font-semibold leading-5">
-        {tab.label}
-        {tab.badge !== undefined && (
-          <span
-            className={clsx(
-              "rounded-full px-2 py-0.5 text-[12px] leading-4",
-              isActive ? "bg-white/15 text-white" : "bg-white text-[var(--color-brand-muted)]"
-            )}
-          >
-            {tab.badge}
-          </span>
-        )}
-        {tab.hasIssue && <span className={clsx("h-2 w-2 rounded-full", isActive ? "bg-[var(--color-brand-yellow)]" : "bg-[#d04437]")} />}
-      </span>
-      <span className={clsx("mt-0.5 block text-[12px] leading-4", isActive ? "text-white/72" : "text-[var(--color-brand-muted)]")}>
-        {tab.hint}
-      </span>
-    </button>
-  );
-}
-
-function ConfirmationDialog({
-  state,
-  onCancel,
-  onConfirm,
-}: {
-  state: ConfirmDialogState;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  useEffect(() => {
-    if (!state) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onCancel();
-      }
-    };
-
-    const previousActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    document.getElementById("admin-confirm-cancel")?.focus();
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      previousActiveElement?.focus();
-    };
-  }, [onCancel, state]);
-
-  if (!state) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(16,17,20,0.48)] px-4" role="presentation">
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="admin-confirm-title"
-        className="w-full max-w-[440px] rounded-[var(--radius-lg)] bg-white p-5 shadow-[0_24px_60px_rgba(16,17,20,0.22)] sm:p-6"
-      >
-        <Typography id="admin-confirm-title" as="h2" size="lg" weight="bold">
-          {state.title}
-        </Typography>
-        <Typography className="mt-2 text-neutral-600" size="sm">
-          {state.message}
-        </Typography>
-        <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button id="admin-confirm-cancel" type="button" variant="secondary" onClick={onCancel}>
-            Отменить
-          </Button>
-          <Button type="button" variant={state.tone === "danger" ? "danger" : "primary"} onClick={onConfirm}>
-            {state.confirmLabel}
-          </Button>
-        </div>
-      </section>
-    </div>
   );
 }

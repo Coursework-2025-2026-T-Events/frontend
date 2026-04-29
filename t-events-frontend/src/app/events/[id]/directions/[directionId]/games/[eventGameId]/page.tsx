@@ -368,7 +368,8 @@ export default function GameSessionPage() {
 
     if (action.type === "select") {
       event.preventDefault();
-      setSelectedOptionId(options[index].option_id);
+      const option = options[index];
+      if (option) setSelectedOptionId(option.option_id);
       return;
     }
 

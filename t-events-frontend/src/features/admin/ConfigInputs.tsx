@@ -8,8 +8,8 @@ import type { TemplateQuestionStatsDTO } from "@/lib/api/types";
 type Props = {
   form: AdminGameConfigForm;
   setForm: (value: AdminGameConfigForm) => void;
-  questionStats?: TemplateQuestionStatsDTO;
-  disabled?: boolean;
+  questionStats?: TemplateQuestionStatsDTO | undefined;
+  disabled?: boolean | undefined;
 };
 
 export default function ConfigInputs({ disabled = false, form, questionStats, setForm }: Props) {

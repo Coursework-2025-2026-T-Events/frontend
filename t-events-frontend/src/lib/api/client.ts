@@ -32,7 +32,8 @@ export class ApiError extends Error {
 function getCsrfTokenFromCookie(): string | null {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
+  const token = match?.[1];
+  return token ? decodeURIComponent(token) : null;
 }
 
 function shouldAttachJsonContentType(body: BodyInit | null | undefined): boolean {
@@ -66,7 +67,7 @@ function buildHeaders(options: RequestInit, token: string | null): Headers {
   return headers;
 }
 
-async function executeRefresh(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<string | null> {
   if (tokenStore.hasLogoutIntent()) return null;
   if (refreshPromise) return refreshPromise;
 
@@ -108,7 +109,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (res.status === 401 && path !== REFRESH_PATH && !tokenStore.hasLogoutIntent()) {
-    token = await executeRefresh();
+    token = await refreshAccessToken();
 
     if (token) {
       res = await fetch(`${API_BASE}${path}`, {
@@ -149,14 +150,19 @@ function toJsonBody(body: unknown): BodyInit | undefined {
   return JSON.stringify(body);
 }
 
+function withJsonBody(options: Omit<RequestInit, "method" | "body">, method: string, body: unknown): RequestInit {
+  const jsonBody = toJsonBody(body);
+  return jsonBody === undefined ? { ...options, method } : { ...options, method, body: jsonBody };
+}
+
 export const api = {
   get: <T>(path: string, options: Omit<RequestInit, "method"> = {}) => request<T>(path, options),
   post: <T>(path: string, body?: unknown, options: Omit<RequestInit, "method" | "body"> = {}) =>
-    request<T>(path, { ...options, method: "POST", body: toJsonBody(body) }),
+    request<T>(path, withJsonBody(options, "POST", body)),
   put: <T>(path: string, body?: unknown, options: Omit<RequestInit, "method" | "body"> = {}) =>
-    request<T>(path, { ...options, method: "PUT", body: toJsonBody(body) }),
+    request<T>(path, withJsonBody(options, "PUT", body)),
   patch: <T>(path: string, body?: unknown, options: Omit<RequestInit, "method" | "body"> = {}) =>
-    request<T>(path, { ...options, method: "PATCH", body: toJsonBody(body) }),
+    request<T>(path, withJsonBody(options, "PATCH", body)),
   delete: <T>(path: string, options: Omit<RequestInit, "method"> = {}) =>
     request<T>(path, { ...options, method: "DELETE" }),
 };

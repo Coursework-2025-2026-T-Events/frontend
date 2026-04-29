@@ -4,10 +4,10 @@ import { uiMessages } from "@/lib/messages";
 
 type Props = {
   message: string;
-  title?: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  className?: string;
+  title?: string | undefined;
+  actionLabel?: string | undefined;
+  onAction?: (() => void) | undefined;
+  className?: string | undefined;
 };
 
 export default function ErrorMessage({ message, title = uiMessages.defaultErrorTitle, actionLabel, onAction, className }: Props) {

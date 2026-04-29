@@ -2,8 +2,8 @@ import clsx from "clsx";
 import { useId } from "react";
 
 type Props = React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
-  label?: string;
-  error?: string;
+  label?: string | undefined;
+  error?: string | undefined;
 };
 
 export default function Textarea({ label, error, className, id, ...props }: Props) {

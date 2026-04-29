@@ -11,11 +11,11 @@ import type {
 } from "@/lib/api/types";
 
 export type RedemptionListFilters = {
-  q?: string;
-  direction_id?: number;
-  reward_type?: RewardType;
-  limit?: number;
-  offset?: number;
+  q?: string | undefined;
+  direction_id?: number | undefined;
+  reward_type?: RewardType | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 };
 
 export type RedemptionTokenRequest =

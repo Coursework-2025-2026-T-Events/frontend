@@ -5,6 +5,7 @@ export const routes = {
   login: "/auth/login",
   register: "/auth/register",
   adminEvents: "/admin/events",
+  adminAuditLogs: "/admin/audit-logs",
   standerScan: "/stander/scan",
   standerInventory: "/stander/inventory",
   event: (eventId: number) => `/events/${eventId}`,
