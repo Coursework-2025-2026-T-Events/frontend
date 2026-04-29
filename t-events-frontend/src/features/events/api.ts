@@ -10,6 +10,17 @@ import type {
   SessionStateResponse,
   SubmitAnswerResponse,
 } from "@/lib/api/types";
+import {
+  parseDirectionGamesResponse,
+  parseDirectionLeaderboardResponse,
+  parseDirectionResponse,
+  parseDirectionsResponse,
+  parseEventResponse,
+  parseEventsResponse,
+  parseSessionStateResponse,
+  parseStartOrResumeSessionResponse,
+  parseSubmitAnswerResponse,
+} from "./eventContracts";
 
 export type SubmitAnswerPayload =
   | {
@@ -24,11 +35,11 @@ export type SubmitAnswerPayload =
     };
 
 export const eventsApi = {
-  list: () => api.get<EventsResponse>("/events"),
-  getById: (id: number) => api.get<EventResponse>(`/events/${id}`),
-  directions: (eventId: number) => api.get<DirectionsResponse>(`/events/${eventId}/directions`),
+  list: () => api.get<EventsResponse>("/events").then(parseEventsResponse),
+  getById: (id: number) => api.get<EventResponse>(`/events/${id}`).then(parseEventResponse),
+  directions: (eventId: number) => api.get<DirectionsResponse>(`/events/${eventId}/directions`).then(parseDirectionsResponse),
   directionById: (eventId: number, directionId: number) =>
-    api.get<DirectionResponse>(`/events/${eventId}/directions/${directionId}`),
+    api.get<DirectionResponse>(`/events/${eventId}/directions/${directionId}`).then(parseDirectionResponse),
   directionLeaderboard: (
     eventId: number,
     directionId: number,
@@ -40,18 +51,18 @@ export const eventsApi = {
     const query = searchParams.toString();
     return api.get<DirectionLeaderboardResponse>(
       `/events/${eventId}/directions/${directionId}/leaderboard${query ? `?${query}` : ""}`
-    );
+    ).then(parseDirectionLeaderboardResponse);
   },
   directionGames: (eventId: number, directionId: number) =>
-    api.get<DirectionGamesResponse>(`/events/${eventId}/directions/${directionId}/games`),
+    api.get<DirectionGamesResponse>(`/events/${eventId}/directions/${directionId}/games`).then(parseDirectionGamesResponse),
   startOrResumeSession: (eventId: number, directionId: number, eventGameId: number) =>
     api.post<StartOrResumeSessionResponse>(
       `/events/${eventId}/directions/${directionId}/games/${eventGameId}/sessions`
-    ),
+    ).then(parseStartOrResumeSessionResponse),
   getSessionState: (eventId: number, directionId: number, eventGameId: number, sessionId: number) =>
     api.get<SessionStateResponse>(
       `/events/${eventId}/directions/${directionId}/games/${eventGameId}/sessions/${sessionId}`
-    ),
+    ).then(parseSessionStateResponse),
   setCurrentQuestion: (
     eventId: number,
     directionId: number,
@@ -62,7 +73,7 @@ export const eventsApi = {
     api.patch<SessionStateResponse>(
       `/events/${eventId}/directions/${directionId}/games/${eventGameId}/sessions/${sessionId}/current-question`,
       { question_index: questionIndex }
-    ),
+    ).then(parseSessionStateResponse),
   submitAnswer: (
     eventId: number,
     directionId: number,
@@ -73,5 +84,5 @@ export const eventsApi = {
     api.post<SubmitAnswerResponse>(
       `/events/${eventId}/directions/${directionId}/games/${eventGameId}/sessions/${sessionId}/answers`,
       payload
-    ),
+    ).then(parseSubmitAnswerResponse),
 };

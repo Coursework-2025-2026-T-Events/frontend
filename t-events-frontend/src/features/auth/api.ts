@@ -1,5 +1,6 @@
 import { api } from "@/lib/api/client";
 import type { LoginResponse, LogoutResponse, RegisterResponse, UserResponse } from "@/lib/api/types";
+import { parseLoginResponse, parseRegisterResponse, parseUserResponse } from "./authContracts";
 
 const backendOrigin = process.env.NEXT_PUBLIC_BACKEND_API_ORIGIN ?? "";
 const vkStartPath = `${backendOrigin}/api/v1/auth/vk/start`;
@@ -34,14 +35,14 @@ async function logout(accessToken: string | null): Promise<LogoutResponse | null
 
 export const authApi = {
   register: (payload: { email: string; password: string; full_name: string; phone: string }) =>
-    api.post<RegisterResponse>("/auth/register", payload),
+    api.post<RegisterResponse>("/auth/register", payload).then(parseRegisterResponse),
   login: (payload: { email: string; password: string }) =>
-    api.post<LoginResponse>("/auth/login", payload),
+    api.post<LoginResponse>("/auth/login", payload).then(parseLoginResponse),
   vkStartPath,
   vkCallback: (params: { code: string; state: string; device_id?: string }) => {
     const searchParams = new URLSearchParams(params);
-    return api.get<LoginResponse>(`/auth/vk/callback?${searchParams.toString()}`);
+    return api.get<LoginResponse>(`/auth/vk/callback?${searchParams.toString()}`).then(parseLoginResponse);
   },
   logout,
-  me: () => api.get<UserResponse>("/me"),
+  me: () => api.get<UserResponse>("/me").then(parseUserResponse),
 };

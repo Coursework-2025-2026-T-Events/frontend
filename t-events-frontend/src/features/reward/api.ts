@@ -9,6 +9,14 @@ import type {
   RedemptionListResponse,
   RewardType,
 } from "@/lib/api/types";
+import {
+  parseEventRedemptionResponse,
+  parseRedemptionListResponse,
+  parseRedemptionPreviewResponse,
+  parseRewardEligibilityResponse,
+  parseRewardQrResponse,
+  parseRewardRedemptionResponse,
+} from "./rewardContracts";
 
 export type RedemptionListFilters = {
   q?: string | undefined;
@@ -27,25 +35,25 @@ export const rewardApi = {
   getRewardStatus: (eventId: number, directionId: number) =>
     api.get<RewardEligibilityResponse>(
       `/me/events/${eventId}/directions/${directionId}/reward-status`
-    ),
+    ).then(parseRewardEligibilityResponse),
 
   /** POST /api/v1/me/events/{event_id}/directions/{direction_id}/reward-qr */
   generateQr: (eventId: number, directionId: number) =>
     api.post<RewardQrResponse>(
       `/me/events/${eventId}/directions/${directionId}/reward-qr`
-    ),
+    ).then(parseRewardQrResponse),
 
   /** GET /api/v1/me/events/{event_id}/redemption */
   getEventRedemption: (eventId: number) =>
-    api.get<EventRedemptionResponse>(`/me/events/${eventId}/redemption`),
+    api.get<EventRedemptionResponse>(`/me/events/${eventId}/redemption`).then(parseEventRedemptionResponse),
 
   /** POST /api/v1/stander/redemptions/preview */
   previewRedemption: (payload: RedemptionTokenRequest) =>
-    api.post<RedemptionPreviewResponse>("/stander/redemptions/preview", payload),
+    api.post<RedemptionPreviewResponse>("/stander/redemptions/preview", payload).then(parseRedemptionPreviewResponse),
 
   /** POST /api/v1/stander/redemptions */
   confirmRedemption: (payload: RedemptionTokenRequest) =>
-    api.post<RewardRedemptionResponse>("/stander/redemptions", payload),
+    api.post<RewardRedemptionResponse>("/stander/redemptions", payload).then(parseRewardRedemptionResponse),
 
   /** GET /api/v1/stander/events/{event_id}/redemptions */
   listEventRedemptions: (eventId: number, filters: RedemptionListFilters = {}) => {
@@ -58,6 +66,6 @@ export const rewardApi = {
     const query = searchParams.toString();
     return api.get<RedemptionListResponse>(
       `/stander/events/${eventId}/redemptions${query ? `?${query}` : ""}`
-    );
+    ).then(parseRedemptionListResponse);
   },
 };

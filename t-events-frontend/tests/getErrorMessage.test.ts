@@ -7,6 +7,19 @@ test("returns message from Error instance", () => {
   assert.equal(getErrorMessage(new Error("Ошибка валидации"), "fallback"), "Ошибка валидации");
 });
 
+test("uses dedicated presentations for API-client infrastructure errors", () => {
+  const network = getErrorPresentation(new ApiError("Network request failed", 0, "network_error"), "fallback");
+  const contract = getErrorPresentation(new ApiError("Invalid JSON response", 200, "contract_mismatch"), "fallback");
+  const expired = getErrorPresentation(new ApiError("expired", 401, "session_expired"), "fallback");
+
+  assert.equal(network.title, "Проблема с подключением");
+  assert.equal(network.retryable, true);
+  assert.equal(contract.title, "Некорректный ответ сервера");
+  assert.equal(contract.retryable, true);
+  assert.equal(expired.message, "Сессия истекла. Войдите снова, чтобы продолжить.");
+  assert.equal(expired.retryable, false);
+});
+
 test("returns message field from object errors", () => {
   assert.equal(getErrorMessage({ message: "Ошибка API" }, "fallback"), "Ошибка API");
 });

@@ -4,6 +4,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import EmptyState from "../src/components/ui/EmptyState";
 import ErrorMessage from "../src/components/ui/ErrorMessage";
+import FormErrorSummary from "../src/components/ui/FormErrorSummary";
 import LiveStatus from "../src/components/ui/LiveStatus";
 import LoadingState from "../src/components/ui/LoadingState";
 import PageHeader from "../src/components/ui/PageHeader";
@@ -65,6 +66,25 @@ test("ErrorMessage exposes alert semantics and optional recovery action", () => 
   assert.match(html, /Ошибка загрузки/);
   assert.match(html, /Не удалось загрузить мероприятия/);
   assert.match(html, /Повторить/);
+});
+
+test("FormErrorSummary announces errors and links to invalid fields", () => {
+  const html = renderToStaticMarkup(
+    React.createElement(FormErrorSummary, {
+      items: [
+        {
+          label: "Название",
+          message: "Заполните название",
+          fieldId: "event-title",
+        },
+      ],
+    }),
+  );
+
+  assert.match(html, /role="alert"/);
+  assert.match(html, /aria-live="assertive"/);
+  assert.match(html, /href="#event-title"/);
+  assert.match(html, /Название: Заполните название/);
 });
 
 test("LoadingState wraps busy progress in a polite live region", () => {

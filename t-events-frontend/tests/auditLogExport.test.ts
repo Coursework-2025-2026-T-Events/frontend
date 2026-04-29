@@ -69,3 +69,15 @@ test("rejects an inverted audit export date range", () => {
 
   assert.equal(result.errors.range, "Дата начала не должна быть позже даты окончания");
 });
+
+test("rejects invalid audit export date values", () => {
+  const result = buildAuditExportQuery({
+    ...baseForm,
+    from: "not-a-date",
+  });
+
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+
+  assert.equal(result.errors.from, "Введите корректную дату и время");
+});

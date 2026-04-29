@@ -1,4 +1,4 @@
-const LOGOUT_INTENT_KEY = "t-events-logout-intent";
+export const LOGOUT_INTENT_KEY = "t-events-logout-intent";
 
 let memoryToken: string | null = null;
 

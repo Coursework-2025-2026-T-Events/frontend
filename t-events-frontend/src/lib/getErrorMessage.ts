@@ -22,10 +22,25 @@ const API_ERROR_PRESENTATIONS = {
     message: "Необходимо войти в аккаунт.",
     retryable: false,
   },
+  session_expired: {
+    title: "Сессия истекла",
+    message: "Сессия истекла. Войдите снова, чтобы продолжить.",
+    retryable: false,
+  },
   forbidden: {
     title: "Нет доступа",
     message: "У вас нет доступа к этому действию.",
     retryable: false,
+  },
+  network_error: {
+    title: "Проблема с подключением",
+    message: "Не удалось подключиться к серверу. Проверьте соединение и повторите попытку.",
+    retryable: true,
+  },
+  contract_mismatch: {
+    title: "Некорректный ответ сервера",
+    message: "Сервер вернул данные в неожиданном формате. Попробуйте обновить страницу.",
+    retryable: true,
   },
   validation_error: {
     title: "Проверьте данные",

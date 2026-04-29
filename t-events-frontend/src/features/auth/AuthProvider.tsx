@@ -3,11 +3,22 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserDTO } from "@/lib/api/types";
-import { tokenStore } from "@/lib/auth/tokenStore";
+import { LOGOUT_INTENT_KEY, tokenStore } from "@/lib/auth/tokenStore";
 import { queryKeys } from "@/lib/queryKeys";
 import { useParticipationStore } from "@/features/participation/store";
 import { refreshSession } from "./refresh";
 import { authApi } from "./api";
+import {
+  AUTH_CHANNEL_NAME,
+  AUTH_LOGIN_EVENT_KEY,
+  anonymousAuthBootstrap,
+  deriveAuthStatus,
+  isAuthEvent,
+  serializeAuthEvent,
+  type AuthEvent,
+  type AuthBootstrapResult,
+  type AuthStatus,
+} from "./authSession";
 
 type AuthContextValue = {
     user: UserDTO | null;
@@ -18,16 +29,27 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-const LOGOUT_INTENT_KEY = "t-events-logout-intent";
-const AUTH_CHANNEL_NAME = "t-events-auth";
-
-export type AuthStatus = "refreshing" | "anonymous" | "authenticated" | "logout_in_progress";
-
 function clearClientSession(queryClient: ReturnType<typeof useQueryClient>) {
   tokenStore.set(null);
   useParticipationStore.getState().clear();
-  queryClient.setQueryData(queryKeys.auth.bootstrapSession, null);
+  queryClient.setQueryData(queryKeys.auth.bootstrapSession, anonymousAuthBootstrap);
   queryClient.clear();
+}
+
+function publishAuthEvent(type: "login" | "logout") {
+  const payload = serializeAuthEvent(type);
+  if (typeof BroadcastChannel !== "undefined") {
+    const channel = new BroadcastChannel(AUTH_CHANNEL_NAME);
+    channel.postMessage(JSON.parse(payload));
+    channel.close();
+  }
+
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(type === "login" ? AUTH_LOGIN_EVENT_KEY : LOGOUT_INTENT_KEY, type === "login" ? payload : "1");
+  } catch {
+    // ignore storage failures in restricted browser modes
+  }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -39,24 +61,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     queryFn: async () => {
       if (tokenStore.hasLogoutIntent()) {
         tokenStore.set(null);
-        return null;
+        return anonymousAuthBootstrap;
+      }
+
+      const hadAccessToken = Boolean(tokenStore.get());
+
+      try {
+        if (hadAccessToken) {
+          const me = await authApi.me();
+          return { user: me.data ?? null, sessionExpired: false } satisfies AuthBootstrapResult;
+        }
+      } catch {
+        tokenStore.set(null);
       }
 
       try {
-        if (tokenStore.get()) {
-          const me = await authApi.me();
-          return me.data ?? null;
-        }
-
         const res = await refreshSession();
         tokenStore.setLogoutIntent(false);
         tokenStore.set(res.data.access_token);
 
         const me = await authApi.me();
-        return me.data ?? null;
+        return { user: me.data ?? null, sessionExpired: false } satisfies AuthBootstrapResult;
       } catch {
         tokenStore.set(null);
-        return null;
+        return { user: null, sessionExpired: hadAccessToken } satisfies AuthBootstrapResult;
       }
     },
     retry: false,
@@ -64,35 +92,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refetchOnWindowFocus: false,
   });
 
-  const user = bootstrapQuery.data ?? null;
+  const bootstrap = bootstrapQuery.data ?? anonymousAuthBootstrap;
+  const user = bootstrap.user;
   const isBootstrapping = bootstrapQuery.isPending;
-  const status: AuthStatus = useMemo(() => {
-    if (isLogoutInProgress) return "logout_in_progress";
-    if (isBootstrapping) return "refreshing";
-    return user ? "authenticated" : "anonymous";
-  }, [isBootstrapping, isLogoutInProgress, user]);
+  const status = useMemo(
+    () =>
+      deriveAuthStatus({
+        user,
+        isBootstrapping,
+        isLogoutInProgress,
+        hasBootstrapped: bootstrapQuery.isFetched,
+        sessionExpired: bootstrap.sessionExpired,
+      }),
+    [bootstrap.sessionExpired, bootstrapQuery.isFetched, isBootstrapping, isLogoutInProgress, user],
+  );
 
   const setUser = (nextUser: UserDTO | null) => {
-    if (nextUser) tokenStore.setLogoutIntent(false);
-    queryClient.setQueryData(queryKeys.auth.bootstrapSession, nextUser);
+    if (nextUser) {
+      tokenStore.setLogoutIntent(false);
+      publishAuthEvent("login");
+    }
+    queryClient.setQueryData(queryKeys.auth.bootstrapSession, {
+      user: nextUser,
+      sessionExpired: false,
+    } satisfies AuthBootstrapResult);
   };
 
   useEffect(() => {
     const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel(AUTH_CHANNEL_NAME);
 
-    const handleLogoutSignal = () => {
-      clearClientSession(queryClient);
+    const handleAuthEvent = (event: AuthEvent) => {
+      if (event.type === "logout") {
+        clearClientSession(queryClient);
+        return;
+      }
+
+      tokenStore.setLogoutIntent(false);
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.bootstrapSession });
     };
 
     const handleStorage = (event: StorageEvent) => {
-      if (event.key !== LOGOUT_INTENT_KEY || event.newValue !== "1") return;
-      handleLogoutSignal();
+      if (event.key === LOGOUT_INTENT_KEY && event.newValue === "1") {
+        handleAuthEvent({ type: "logout", timestamp: Date.now() });
+        return;
+      }
+      if (event.key !== AUTH_LOGIN_EVENT_KEY || !event.newValue) return;
+      try {
+        const parsed = JSON.parse(event.newValue) as unknown;
+        if (isAuthEvent(parsed)) handleAuthEvent(parsed);
+      } catch {
+        // ignore malformed cross-tab auth events
+      }
     };
 
-    channel?.addEventListener("message", handleLogoutSignal);
+    const handleChannelMessage = (event: MessageEvent) => {
+      if (isAuthEvent(event.data)) handleAuthEvent(event.data);
+    };
+
+    channel?.addEventListener("message", handleChannelMessage);
     window.addEventListener("storage", handleStorage);
     return () => {
-      channel?.removeEventListener("message", handleLogoutSignal);
+      channel?.removeEventListener("message", handleChannelMessage);
       channel?.close();
       window.removeEventListener("storage", handleStorage);
     };
@@ -107,11 +167,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       clearClientSession(queryClient);
       setIsLogoutInProgress(false);
-      if (typeof BroadcastChannel !== "undefined") {
-        const channel = new BroadcastChannel(AUTH_CHANNEL_NAME);
-        channel.postMessage({ type: "logout" });
-        channel.close();
-      }
+      publishAuthEvent("logout");
     }
   };
 

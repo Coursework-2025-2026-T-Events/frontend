@@ -1,9 +1,9 @@
-import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
 import Typography from "@/components/ui/Typography";
-import { difficulties, difficultyLabels } from "./labels";
-import type { AdminGameConfigForm } from "./gameConfig";
 import type { TemplateQuestionStatsDTO } from "@/lib/api/types";
+import type { AdminGameConfigForm } from "./gameConfig";
+import { difficulties, difficultyLabels } from "./labels";
 
 type Props = {
   form: AdminGameConfigForm;
@@ -19,6 +19,7 @@ export default function ConfigInputs({ disabled = false, form, questionStats, se
         const pickKey = `${difficulty}_pick` as keyof AdminGameConfigForm;
         const scoreKey = `${difficulty}_score` as keyof AdminGameConfigForm;
         const available = questionStats?.[difficulty];
+
         return (
           <Card key={difficulty} className="p-3">
             <Typography as="h3" size="sm" weight="bold" className="capitalize">
@@ -36,7 +37,7 @@ export default function ConfigInputs({ disabled = false, form, questionStats, se
                 min={0}
                 max={available}
                 value={form[pickKey]}
-                onChange={(e) => setForm({ ...form, [pickKey]: e.target.value })}
+                onChange={(event) => setForm({ ...form, [pickKey]: event.target.value })}
                 disabled={disabled}
                 required
               />
@@ -45,7 +46,7 @@ export default function ConfigInputs({ disabled = false, form, questionStats, se
                 type="number"
                 min={0}
                 value={form[scoreKey]}
-                onChange={(e) => setForm({ ...form, [scoreKey]: e.target.value })}
+                onChange={(event) => setForm({ ...form, [scoreKey]: event.target.value })}
                 disabled={disabled}
                 required
               />

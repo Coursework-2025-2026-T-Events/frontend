@@ -4,6 +4,8 @@ const API_BASE = "/api/v1";
 const REFRESH_PATH = "/auth/refresh";
 let refreshPromise: Promise<string | null> | null = null;
 
+export type ApiErrorKind = "auth" | "contract" | "http" | "network";
+
 type ApiEnvelope = {
   error?: {
     code?: string;
@@ -15,18 +17,51 @@ type ApiEnvelope = {
   };
 };
 
+function parseRefreshAccessTokenPayload(value: unknown): string | null {
+  if (typeof value !== "object" || value === null || !("data" in value)) {
+    throw new ApiError("Refresh API response does not match the expected contract", 200, "contract_mismatch", value, "contract");
+  }
+
+  const data = (value as { data: unknown }).data;
+  if (typeof data !== "object" || data === null || !("access_token" in data)) {
+    throw new ApiError("Refresh API response does not match the expected contract", 200, "contract_mismatch", value, "contract");
+  }
+
+  const accessToken = (data as { access_token: unknown }).access_token;
+  if (typeof accessToken !== "string" || accessToken.length === 0) {
+    throw new ApiError("Refresh API response does not match the expected contract", 200, "contract_mismatch", value, "contract");
+  }
+
+  return accessToken;
+}
+
 export class ApiError extends Error {
   public status: number;
   public code: string;
   public details: unknown;
+  public kind: ApiErrorKind;
 
-  constructor(message: string, status: number, code: string = "http_error", details: unknown = undefined) {
+  constructor(
+    message: string,
+    status: number,
+    code: string = "http_error",
+    details: unknown = undefined,
+    kind: ApiErrorKind = inferApiErrorKind(status, code),
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.details = details;
+    this.kind = kind;
   }
+}
+
+function inferApiErrorKind(status: number, code: string): ApiErrorKind {
+  if (code === "network_error" || status === 0) return "network";
+  if (code === "contract_mismatch") return "contract";
+  if (status === 401 || code === "unauthorized" || code === "session_expired") return "auth";
+  return "http";
 }
 
 function getCsrfTokenFromCookie(): string | null {
@@ -87,52 +122,60 @@ async function executeRefreshRequest(): Promise<string | null> {
     });
     if (!rfRes.ok) return null;
 
-    const rfData = (await rfRes.json()) as ApiEnvelope;
-    const newToken = rfData?.data?.access_token;
-    if (typeof newToken === "string" && newToken.length > 0) {
-      tokenStore.set(newToken);
-      return newToken;
-    }
+    const rfData = (await rfRes.json()) as unknown;
+    const newToken = parseRefreshAccessTokenPayload(rfData);
+    tokenStore.set(newToken);
+    return newToken;
+  } catch (error) {
+    if (error instanceof ApiError && error.kind === "contract") throw error;
     return null;
+  }
+}
+
+async function sendRequest(path: string, options: RequestInit, token: string | null): Promise<Response> {
+  try {
+    return await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: buildHeaders(options, token),
+      credentials: "include",
+    });
   } catch {
-    return null;
+    throw new ApiError("Network request failed", 0, "network_error", undefined, "network");
+  }
+}
+
+async function readResponseData(res: Response): Promise<unknown> {
+  const contentType = res.headers.get("content-type");
+  const text = await res.text();
+  if (!contentType?.includes("application/json")) return text;
+  if (!text.trim()) return null;
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    if (res.ok) {
+      throw new ApiError("Invalid JSON response", res.status, "contract_mismatch", undefined, "contract");
+    }
+    return text;
   }
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   let token = tokenStore.get();
 
-  let res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: buildHeaders(options, token),
-    credentials: "include",
-  });
+  let res = await sendRequest(path, options, token);
 
   if (res.status === 401 && path !== REFRESH_PATH && !tokenStore.hasLogoutIntent()) {
     token = await refreshAccessToken();
 
     if (token) {
-      res = await fetch(`${API_BASE}${path}`, {
-        ...options,
-        headers: buildHeaders(options, token),
-        credentials: "include",
-      });
+      res = await sendRequest(path, options, token);
     } else {
       tokenStore.set(null);
     }
   }
 
-  let data: unknown;
-  const contentType = res.headers.get("content-type");
-  if (contentType && contentType.includes("application/json")) {
-    try {
-      data = await res.json();
-    } catch {
-      data = await res.text();
-    }
-  } else {
-    data = await res.text();
-  }
+  const data = await readResponseData(res);
 
   if (!res.ok) {
     const responseData = typeof data === "object" && data !== null ? (data as ApiEnvelope) : null;

@@ -3,8 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const scanRoots = ["src", "tests", "docs", "README.md", "AGENTS.md", "CLAUDE.md"];
-const scannedExtensions = new Set([".css", ".js", ".json", ".md", ".mjs", ".ts", ".tsx"]);
+const scanRoots = ["src", "tests", "docs", ".github", "README.md", "AGENTS.md", "CLAUDE.md"];
+const scannedExtensions = new Set([".css", ".js", ".json", ".md", ".mjs", ".ts", ".tsx", ".yml", ".yaml"]);
 const ignoredDirectories = new Set([".git", ".next", "coverage", "node_modules", "out"]);
 
 const mojibakePatterns = [
