@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { LoginResponse } from "@/lib/api/types";
 
 const backendApiOrigin = process.env.BACKEND_API_ORIGIN ?? "http://localhost:8080";
+const publicOrigin = process.env.PUBLIC_ORIGIN;
 
 function encodeHashPayload(payload: unknown): string {
   const json = JSON.stringify(payload);
@@ -9,7 +10,12 @@ function encodeHashPayload(payload: unknown): string {
 }
 
 function redirectToClient(request: NextRequest, hashParams: Record<string, string>) {
-  const url = new URL("/auth/vk/callback", request.url);
+  const origin =
+    publicOrigin ??
+    `${request.headers.get("x-forwarded-proto") ?? request.nextUrl.protocol.replace(":", "")}://${
+      request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? request.nextUrl.host
+    }`;
+  const url = new URL("/auth/vk/callback", origin);
   const hash = new URLSearchParams(hashParams);
   url.hash = hash.toString();
   return NextResponse.redirect(url);
@@ -18,6 +24,7 @@ function redirectToClient(request: NextRequest, hashParams: Record<string, strin
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
+  const deviceId = request.nextUrl.searchParams.get("device_id");
   const vkError = request.nextUrl.searchParams.get("error");
 
   if (vkError) {
@@ -31,6 +38,7 @@ export async function GET(request: NextRequest) {
   const callbackUrl = new URL("/api/v1/auth/vk/callback", backendApiOrigin);
   callbackUrl.searchParams.set("code", code);
   callbackUrl.searchParams.set("state", state);
+  if (deviceId) callbackUrl.searchParams.set("device_id", deviceId);
 
   try {
     const backendResponse = await fetch(callbackUrl, {

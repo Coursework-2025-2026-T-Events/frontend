@@ -72,6 +72,7 @@ function VkCallbackContent() {
 
       const code = searchParams.get("code");
       const state = searchParams.get("state");
+      const deviceId = searchParams.get("device_id") ?? undefined;
       const vkError = searchParams.get("error");
 
       if (vkError) {
@@ -85,7 +86,7 @@ function VkCallbackContent() {
       }
 
       try {
-        const res = await authApi.vkCallback({ code, state });
+        const res = await authApi.vkCallback({ code, state, device_id: deviceId });
         if (!isMounted) return;
 
         tokenStore.setLogoutIntent(false);

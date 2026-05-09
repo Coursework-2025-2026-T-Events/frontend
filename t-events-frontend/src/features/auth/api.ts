@@ -7,7 +7,7 @@ export const authApi = {
   login: (payload: { email: string; password: string }) =>
     api.post<LoginResponse>("/auth/login", payload),
   vkStartPath: "/api/v1/auth/vk/start",
-  vkCallback: (params: { code: string; state: string }) => {
+  vkCallback: (params: { code: string; state: string; device_id?: string }) => {
     const searchParams = new URLSearchParams(params);
     return api.get<LoginResponse>(`/auth/vk/callback?${searchParams.toString()}`);
   },
